@@ -1221,7 +1221,11 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     if (PH.last) h += '<div class="pick"><div class="pic"><img class="lastph" src="' + PH.last.thumb + '" alt=""></div>' +
       '<table class="g"><tr><td><button class="btn dark" data-act="undophoto">Chụp nhầm? Xoá ngay</button></td>' +
       '<td><button class="btn" data-act="keepphoto">Giữ ảnh này</button></td></tr></table></div>';
-    if (PH.list === null) { h += '<p class="sub">Đang tải ảnh...</p>'; app.innerHTML = h; loadPhotos(); return; }
+    if (PH.list === null) { app.innerHTML = h + '<div id="phl"><p class="sub">Đang tải ảnh...</p></div>'; camBind(); loadPhotos(); return; }
+    app.innerHTML = h + '<div id="phl">' + photoListHtml() + "</div>"; camBind();
+  }
+  function photoListHtml() {
+    var h = "", i, p;
     if (PH.days) h += '<p class="note">Ảnh tự xoá sau ' + PH.days + " ngày.</p>";
     if (!PH.list.length) h += '<p class="sub">Chưa có ảnh nào.</p>';
     else {
@@ -1234,14 +1238,22 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       }
       h += "</tr></table>";
     }
-    app.innerHTML = h;
+    return h;
+  }
+  // Gắn sự kiện thẳng vào ô chọn ảnh: nếu màn hình vẽ lại khi camera đang mở, ô cũ vẫn nhận được ảnh
+  function camBind() {
+    var c = document.getElementById("cam");
+    if (c) c._b = 1;
+    if (c) c.onchange = function () { var f = this.files && this.files[0]; this.onchange = null; if (f) uploadFile(f); };
   }
   function dstr(ts) { var d = new Date(ts); return pad2(d.getDate()) + "/" + pad2(d.getMonth() + 1) + "/" + d.getFullYear(); }
   function loadPhotos() {
     papi({ action: "list" }, function (err, r) {
       if (S.mode !== "photos") return;
       if (err) { PH.list = []; photos("Không tải được ảnh: " + err.msg); return; }
-      PH.list = r.photos; PH.days = r.photoDays; photos();
+      PH.list = r.photos; PH.days = r.photoDays;
+      var box = document.getElementById("phl");
+      if (box) box.innerHTML = photoListHtml(); else photos();
     });
   }
   function viewPhoto(i) {
@@ -1299,7 +1311,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       '<button class="btn dark" data-act="cropdone">Xong, xem bản đen trắng</button>' +
       '<table class="g"><tr><td><label class="btn filebtn">Chụp lại<input id="cam" type="file" accept="image/*" capture="environment"></label></td>' +
       '<td><button class="btn back" data-act="cancelph">Huỷ</button></td></tr></table>';
-    placeCrop(); bindCrop();
+    placeCrop(); bindCrop(); camBind();
   }
   function placeCrop() {
     var bx = document.getElementById("cropbox"), c = PH.crop;
@@ -1357,6 +1369,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       '<table class="g"><tr><td><button class="btn dark" data-act="savephoto">Lưu ảnh</button></td>' +
       '<td><label class="btn filebtn">Chụp lại<input id="cam" type="file" accept="image/*" capture="environment"></label></td></tr></table>' +
       '<table class="g"><tr><td><button class="btn" data-act="recrop">Cắt lại</button></td><td><button class="btn back" data-act="cancelph">Huỷ, không lưu</button></td></tr></table>';
+    camBind();
   }
   function savePending() {
     var p = PH.pending;
@@ -1405,6 +1418,17 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     if (!f) return;
     if (!window.FileReader) { photos("Máy này không gửi ảnh được, hãy dùng điện thoại."); return; }
     photos("Đang xử lý ảnh...");
+    var URLo = window.URL || window.webkitURL;
+    if (URLo && URLo.createObjectURL) {
+      var u = URLo.createObjectURL(f), im = new Image();
+      im.onload = function () {
+        try { PH.base = toCanvas(im, 2400, 0); } catch (e) { URLo.revokeObjectURL(u); photos("Không đọc được ảnh này."); return; }
+        URLo.revokeObjectURL(u); PH.crop = { x: 0, y: 0, w: 1, h: 1 }; PH.pending = null; cropScreen();
+      };
+      im.onerror = function () { URLo.revokeObjectURL(u); photos("Không đọc được ảnh này, bé thử chụp lại nhé."); };
+      im.src = u;
+      return;
+    }
     var rd = new FileReader();
     rd.onload = function () {
       var img = new Image();
@@ -1992,7 +2016,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   app.onchange = function (ev) {
     ev = ev || window.event;
     var el = ev.target || ev.srcElement;
-    if (el && el.id === "cam" && el.files && el.files[0]) uploadFile(el.files[0]);
+    if (el && el.id === "cam" && !el._b && el.files && el.files[0]) uploadFile(el.files[0]);
   };
   app.onkeyup = function (ev) {
     ev = ev || window.event;
