@@ -85,6 +85,12 @@ table.mons .btn { font-size: 24px; min-height: 150px; padding: 8px 4px; }
 .filebtn input { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; font-size: 200px; cursor: pointer; }
 .btn.ph { padding: 6px; min-height: 0; font-size: 18px; }
 .btn.ph img { display: block; width: 100%; height: auto; }
+.cropwrap { position: relative; overflow: hidden; margin: 6px 0 12px; touch-action: none; -webkit-user-select: none; user-select: none; }
+.cropwrap img { display: block; width: 100%; height: auto; pointer-events: none; }
+.cropbox { position: absolute; border: 3px solid #fff; outline: 2px solid #000; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55); cursor: move; touch-action: none; }
+.hd { position: absolute; width: 34px; height: 34px; background: #fff; border: 3px solid #000; border-radius: 50%; touch-action: none; }
+.hd.nw { left: -19px; top: -19px; cursor: nwse-resize; } .hd.ne { right: -19px; top: -19px; cursor: nesw-resize; }
+.hd.sw { left: -19px; bottom: -19px; cursor: nesw-resize; } .hd.se { right: -19px; bottom: -19px; cursor: nwse-resize; }
 img.prev { max-width: 100%; height: auto; border: 3px solid #000; }
 .zoombox { overflow: auto; max-height: 70vh; border: 3px solid #000; margin: 6px 0 10px; -webkit-overflow-scrolling: touch; }
 img.zoomimg { display: block; max-width: none; }
@@ -1163,6 +1169,83 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       PH.list.splice(PH.cur, 1); photos("Đã xoá ảnh.");
     });
   }
+  // ----- Cắt và xoay ảnh -----
+  function toCanvas(src, max, rot) {
+    var w = src.width, hh = src.height, s = Math.min(1, max / Math.max(w, hh)), cv = document.createElement("canvas"), cx;
+    var dw = Math.round(w * s), dh = Math.round(hh * s), sw = rot % 180 ? dh : dw, sh = rot % 180 ? dw : dh;
+    cv.width = sw; cv.height = sh; cx = cv.getContext("2d");
+    cx.fillStyle = "#fff"; cx.fillRect(0, 0, sw, sh);
+    cx.translate(sw / 2, sh / 2); cx.rotate(rot * Math.PI / 180); cx.drawImage(src, -dw / 2, -dh / 2, dw, dh);
+    return cv;
+  }
+  function cropOut(max, q) {
+    var b = PH.base, c = PH.crop, sx = Math.round(c.x * b.width), sy = Math.round(c.y * b.height),
+      sw = Math.max(1, Math.round(c.w * b.width)), sh = Math.max(1, Math.round(c.h * b.height)),
+      s = Math.min(1, max / Math.max(sw, sh)), cv = document.createElement("canvas"), cx;
+    cv.width = Math.max(1, Math.round(sw * s)); cv.height = Math.max(1, Math.round(sh * s));
+    cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.drawImage(b, sx, sy, sw, sh, 0, 0, cv.width, cv.height);
+    toGray(cx, cv.width, cv.height);
+    return cv.toDataURL("image/jpeg", q);
+  }
+  function cropScreen() {
+    S.mode = "crop";
+    var c = PH.crop;
+    app.innerHTML = topBar("Cắt ảnh") + "<h2>Chọn vùng cần giữ</h2>" +
+      '<p class="sub">Kéo 4 góc để co giãn khung, kéo giữa khung để di chuyển.</p>' +
+      '<div class="cropwrap" id="cropwrap"><img id="cropimg" src="' + PH.base.toDataURL("image/jpeg", 0.8) + '" alt="">' +
+      '<div class="cropbox" id="cropbox"><span class="hd nw" data-h="nw"></span><span class="hd ne" data-h="ne"></span>' +
+      '<span class="hd sw" data-h="sw"></span><span class="hd se" data-h="se"></span></div></div>' +
+      '<table class="g"><tr><td><button class="btn" data-act="rotph">Xoay ảnh</button></td><td><button class="btn" data-act="cropall">Chọn cả ảnh</button></td></tr></table>' +
+      '<button class="btn dark" data-act="cropdone">Xong, xem bản đen trắng</button>' +
+      '<table class="g"><tr><td><label class="btn filebtn">Chụp lại<input id="cam" type="file" accept="image/*" capture="environment"></label></td>' +
+      '<td><button class="btn back" data-act="cancelph">Huỷ</button></td></tr></table>';
+    placeCrop(); bindCrop();
+  }
+  function placeCrop() {
+    var bx = document.getElementById("cropbox"), c = PH.crop;
+    if (!bx) return;
+    bx.style.left = (c.x * 100) + "%"; bx.style.top = (c.y * 100) + "%"; bx.style.width = (c.w * 100) + "%"; bx.style.height = (c.h * 100) + "%";
+  }
+  function bindCrop() {
+    var wrap = document.getElementById("cropwrap"), drag = null, MIN = 0.08;
+    if (!wrap) return;
+    function pt(ev) { var t = ev.touches && ev.touches[0] ? ev.touches[0] : ev, r = wrap.getBoundingClientRect(); return { x: (t.clientX - r.left) / r.width, y: (t.clientY - r.top) / r.height }; }
+    function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+    function down(ev) {
+      var t = ev.target, hd = t && t.getAttribute ? t.getAttribute("data-h") : null;
+      if (!hd && t && t.id !== "cropbox") return;
+      drag = { h: hd || "move", p: pt(ev), c: { x: PH.crop.x, y: PH.crop.y, w: PH.crop.w, h: PH.crop.h } };
+      if (ev.preventDefault) ev.preventDefault();
+    }
+    function move(ev) {
+      if (!drag) return;
+      var p = pt(ev), dx = p.x - drag.p.x, dy = p.y - drag.p.y, o = drag.c, x1 = o.x, y1 = o.y, x2 = o.x + o.w, y2 = o.y + o.h;
+      if (drag.h === "move") {
+        x1 = clamp(o.x + dx, 0, 1 - o.w); y1 = clamp(o.y + dy, 0, 1 - o.h); x2 = x1 + o.w; y2 = y1 + o.h;
+      } else {
+        if (drag.h.indexOf("w") >= 0) x1 = clamp(o.x + dx, 0, x2 - MIN);
+        if (drag.h.indexOf("e") >= 0) x2 = clamp(x2 + dx, x1 + MIN, 1);
+        if (drag.h.indexOf("n") >= 0) y1 = clamp(o.y + dy, 0, y2 - MIN);
+        if (drag.h.indexOf("s") >= 0) y2 = clamp(y2 + dy, y1 + MIN, 1);
+      }
+      PH.crop = { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }; placeCrop();
+      if (ev.preventDefault) ev.preventDefault();
+    }
+    function up() { drag = null; }
+    if (window.PointerEvent) {
+      wrap.onpointerdown = function (ev) { down(ev); if (drag && wrap.setPointerCapture) { try { wrap.setPointerCapture(ev.pointerId); } catch (e) {} } };
+      wrap.onpointermove = move; wrap.onpointerup = up; wrap.onpointercancel = up;
+    } else {
+      wrap.ontouchstart = down; wrap.ontouchmove = move; wrap.ontouchend = up;
+      wrap.onmousedown = down; document.onmousemove = move; document.onmouseup = up;
+    }
+  }
+  function cropDone() {
+    var full, thumb;
+    try { full = cropOut(1600, 0.85); thumb = cropOut(260, 0.7); } catch (e) { photos("Không xử lý được ảnh này."); return; }
+    PH.pending = { full: full, thumb: thumb }; PH.zoom = false; previewPhoto();
+  }
   // Xem trước ảnh đen trắng trước khi lưu
   function previewPhoto() {
     S.mode = "preview";
@@ -1174,7 +1257,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       '<button class="btn" data-act="zoomph">' + (PH.zoom ? "Thu nhỏ lại" : "Phóng to để kiểm tra chữ") + "</button>" +
       '<table class="g"><tr><td><button class="btn dark" data-act="savephoto">Lưu ảnh</button></td>' +
       '<td><label class="btn filebtn">Chụp lại<input id="cam" type="file" accept="image/*" capture="environment"></label></td></tr></table>' +
-      '<button class="btn back" data-act="cancelph">Huỷ, không lưu</button>';
+      '<table class="g"><tr><td><button class="btn" data-act="recrop">Cắt lại</button></td><td><button class="btn back" data-act="cancelph">Huỷ, không lưu</button></td></tr></table>';
   }
   function savePending() {
     var p = PH.pending;
@@ -1182,7 +1265,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     photos("Đang gửi ảnh lên...");
     papi({ action: "upload", image: p.full, thumb: p.thumb }, function (err, r) {
       if (err) { PH.msg = "Chưa gửi được ảnh: " + err.msg; previewPhoto(); return; }
-      PH.pending = null; PH.last = { ts: r.ts, thumb: p.thumb }; PH.list = null; photos("Đã lưu ảnh!");
+      PH.pending = null; PH.base = null; PH.last = { ts: r.ts, thumb: p.thumb }; PH.list = null; photos("Đã lưu ảnh!");
     });
   }
   function undoPhoto(btn) {
@@ -1228,8 +1311,8 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       var img = new Image();
       img.onload = function () {
         var full, thumb;
-        try { full = shrink(img, 1600, 0.85); thumb = shrink(img, 260, 0.7); } catch (e) { photos("Không đọc được ảnh này."); return; }
-        PH.pending = { full: full, thumb: thumb }; PH.zoom = false; previewPhoto();
+        try { PH.base = toCanvas(img, 2400, 0); } catch (e) { photos("Không đọc được ảnh này."); return; }
+        PH.crop = { x: 0, y: 0, w: 1, h: 1 }; PH.pending = null; cropScreen();
       };
       img.onerror = function () { photos("Không đọc được ảnh này."); };
       img.src = rd.result;
@@ -1313,8 +1396,12 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "photo") { viewPhoto(parseInt(v, 10)); }
     else if (act === "undophoto") { undoPhoto(b); scroll = false; }
     else if (act === "zoomph") { PH.zoom = !PH.zoom; previewPhoto(); scroll = false; }
+    else if (act === "rotph") { PH.base = toCanvas(PH.base, 2400, 90); PH.crop = { x: 0, y: 0, w: 1, h: 1 }; cropScreen(); scroll = false; }
+    else if (act === "cropall") { PH.crop = { x: 0, y: 0, w: 1, h: 1 }; placeCrop(); scroll = false; }
+    else if (act === "cropdone") cropDone();
+    else if (act === "recrop") { if (PH.base) cropScreen(); }
     else if (act === "savephoto") savePending();
-    else if (act === "cancelph") { PH.pending = null; photos("Đã huỷ, ảnh không được lưu."); }
+    else if (act === "cancelph") { PH.pending = null; PH.base = null; photos("Đã huỷ, ảnh không được lưu."); }
     else if (act === "keepphoto") { PH.last = null; PH.msg = ""; photos(); }
     else if (act === "delphoto") { delPhoto(b); scroll = false; }
     else if (act === "fight") fight(parseInt(v, 10));
