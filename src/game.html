@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bé học lớp 1</title>
+<style>
+/* Thiết kế cho Kindle: đen trắng, chữ to, nút lớn, không có hiệu ứng chuyển động. */
+/*FONTS*/
+html, body { margin: 0; padding: 0; background: #fff; color: #000; }
+body { font-family: "VNSans", "DejaVu Sans", sans-serif; font-size: 24px; line-height: 1.35; }
+#app { max-width: 900px; margin: 0 auto; padding: 14px 16px 40px; }
+h1 { font-size: 42px; margin: 8px 0 6px; text-align: center; }
+h2 { font-size: 30px; margin: 16px 0 10px; text-align: center; }
+p.sub { text-align: center; margin: 0 0 16px; font-size: 22px; }
+.btn { display: block; width: 100%; box-sizing: border-box; -webkit-box-sizing: border-box;
+  margin: 0 0 14px; padding: 16px 8px; min-height: 80px; font-size: 30px; font-family: "VNSans", "DejaVu Sans", sans-serif;
+  font-weight: bold; color: #000; background: #fff; border: 4px solid #000; border-radius: 14px;
+  text-align: center; cursor: pointer; -webkit-appearance: none; }
+.btn.dark { background: #000; color: #fff; }
+.btn.small { display: inline-block; width: auto; min-height: 0; padding: 8px 16px; font-size: 22px; margin: 0; border-width: 3px; }
+.btn.right, .btn.done { background: #000; color: #fff; }
+.btn.wrong { background: #bbb; text-decoration: line-through; border-style: dashed; }
+.btn.off { background: #ddd; color: #666; border-style: dashed; }
+.btn.back { background: #e6e6e6; }
+.btn .s { display: block; font-size: 20px; font-weight: normal; }
+table.g { width: 100%; border-collapse: separate; border-spacing: 10px; margin: 0 -10px; table-layout: fixed; }
+table.g td { padding: 0; vertical-align: top; }
+table.g .btn { margin: 0; }
+table.opts .btn { font-size: 38px; min-height: 108px; }
+table.cards .btn { font-size: 30px; min-height: 104px; padding: 8px 2px; }
+table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
+.top { overflow: hidden; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 14px; }
+.top .l { float: left; font-size: 22px; padding-top: 8px; }
+.top .r { float: right; }
+.q { font-size: 38px; text-align: center; margin: 14px 0 18px; }
+.q .big { font-size: 62px; font-weight: bold; }
+.q .story { font-size: 30px; text-align: left; }
+.dots { font-size: 44px; letter-spacing: 8px; line-height: 1.2; }
+.fb { font-size: 32px; text-align: center; font-weight: bold; margin: 16px 0; min-height: 42px; }
+.score { font-size: 76px; text-align: center; font-weight: bold; margin: 6px 0; }
+.stars { font-size: 60px; text-align: center; letter-spacing: 8px; }
+.note { font-size: 20px; text-align: center; margin: 10px 0; }
+.box { display: inline-block; border: 4px solid #000; min-width: 60px; padding: 0 8px; }
+.cell { display: inline-block; border: 4px solid #000; min-width: 64px; height: 76px; line-height: 76px;
+  font-size: 50px; font-weight: bold; margin: 3px; text-align: center; vertical-align: middle; }
+.cell.q2 { background: #ddd; }
+.tiles { text-align: center; margin: 10px 0; }
+.tiles .btn { display: inline-block; width: 22%; margin: 1%; font-size: 46px; min-height: 96px; }
+.pick { border: 4px solid #000; border-radius: 14px; padding: 4px 14px 12px; margin-bottom: 16px; }
+.pet { text-align: center; }
+.stat { text-align: center; font-size: 24px; margin: 6px 0 16px; }
+.stk { text-align: center; border: 3px solid #000; border-radius: 12px; padding: 8px 2px; min-height: 120px; }
+.stk b { display: block; font-size: 60px; line-height: 1.1; font-weight: normal; }
+.stk.no { border-style: dashed; color: #999; }
+.stk span { font-size: 18px; }
+.inp { display: block; width: 100%; box-sizing: border-box; -webkit-box-sizing: border-box; font-size: 34px; padding: 14px;
+  border: 4px solid #000; border-radius: 14px; margin: 0 0 14px; font-family: "VNSans", "DejaVu Sans", sans-serif; background: #fff; color: #000;  text-transform: capitalize; }
+.inp::-webkit-input-placeholder { text-transform: none; }
+.gift { font-size: 100px; text-align: center; line-height: 1.1; }
+</style>
+</head>
+<body>
+<div id="app">Đang tải...</div>
+<script>
+(function () {
+  // ================= TIỆN ÍCH =================
+  function rand(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+  function shuffle(arr) {
+    var a = arr.slice(), i, j, t;
+    for (i = a.length - 1; i > 0; i--) { j = Math.floor(Math.random() * (i + 1)); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function has(arr, x) { for (var i = 0; i < arr.length; i++) { if (arr[i] === x) return true; } return false; }
+  function mk(text, ans, wrongs, keepOrder) {
+    var opts = [String(ans)], i;
+    for (i = 0; i < wrongs.length && opts.length < 4; i++) {
+      if (!has(opts, String(wrongs[i]))) opts.push(String(wrongs[i]));
+    }
+    if (!keepOrder) opts = shuffle(opts);
+    for (i = 0; i < opts.length; i++) { if (opts[i] === String(ans)) break; }
+    return { kind: "mc", text: text, opts: opts, ans: i };
+  }
+  function yesNo(text, truth) { return { kind: "mc", text: text, opts: ["Đúng", "Sai"], ans: truth ? 0 : 1 }; }
+  function nearNums(n, lo, hi) {
+    var out = [], tries = 0, d, c;
+    while (out.length < 3 && tries < 60) {
+      tries++;
+      d = rand(1, 3) * (Math.random() < 0.5 ? -1 : 1);
+      if (hi > 30 && Math.random() < 0.3) d = d * 10;
+      c = n + d;
+      if (c >= lo && c <= hi && c !== n && !has(out, c)) out.push(c);
+    }
+    c = lo;
+    while (out.length < 3) { if (c !== n && !has(out, c)) out.push(c); c++; }
+    return out;
+  }
+  function wrongNum(r) { var w = r + pick([-2, -1, 1, 2]); return w < 0 ? r + 1 : w; }
+
+  // ================= TOÁN =================
+  var STORIES_ADD = [
+    "Lan có {a} quả cam, mẹ cho thêm {b} quả. Hỏi Lan có tất cả mấy quả cam?",
+    "Tổ Một có {a} bạn, tổ Hai có {b} bạn. Hỏi cả hai tổ có mấy bạn?",
+    "Trong ao có {a} con vịt, có thêm {b} con xuống ao. Hỏi trong ao có tất cả mấy con vịt?",
+    "Bé có {a} viên bi, anh cho bé thêm {b} viên. Hỏi bé có tất cả mấy viên bi?",
+    "Vườn nhà Nam có {a} cây cam và {b} cây bưởi. Hỏi vườn có tất cả mấy cây?"
+  ];
+  var STORIES_SUB = [
+    "Trên cành có {a} con chim, {b} con bay đi. Hỏi trên cành còn lại mấy con chim?",
+    "Bé có {a} cái kẹo, bé cho em {b} cái. Hỏi bé còn lại mấy cái kẹo?",
+    "Hộp có {a} cái bút, Nam lấy ra {b} cái. Hỏi trong hộp còn mấy cái bút?",
+    "Đàn gà có {a} con, {b} con chạy vào chuồng. Hỏi ngoài sân còn mấy con gà?",
+    "Mẹ mua {a} quả trứng, đã luộc {b} quả. Hỏi còn mấy quả trứng chưa luộc?"
+  ];
+  function addPair(M) {
+    var a, b;
+    for (;;) {
+      if (M <= 10) { a = rand(0, 10); b = rand(0, 10 - a); }
+      else if (M <= 20) { a = rand(0, 20); b = rand(0, 20 - a); }
+      else { a = rand(10, 89); b = rand(1, 99 - a); if (a % 10 + b % 10 > 9) continue; }
+      if (a + b > 0) return [a, b];
+    }
+  }
+  function subPair(M) {
+    var a, b;
+    for (;;) {
+      a = rand(M <= 10 ? 1 : (M <= 20 ? 5 : 10), M > 20 ? 99 : M);
+      b = rand(0, a);
+      if (M > 20 && a % 10 < b % 10) continue;
+      return [a, b];
+    }
+  }
+  function mathQ(M) {
+    var hi = M > 20 ? 99 : M;
+    var type = pick(["add", "add", "sub", "sub", "cmp", "count", "next", "miss", "max", "story", "seq"]);
+    var p, a, b, n, s, nums, i, step, start;
+    if (type === "add") {
+      p = addPair(M);
+      return mk('<span class="big">' + p[0] + " + " + p[1] + " = ?</span>", p[0] + p[1], nearNums(p[0] + p[1], 0, hi));
+    }
+    if (type === "sub") {
+      p = subPair(M);
+      return mk('<span class="big">' + p[0] + " − " + p[1] + " = ?</span>", p[0] - p[1], nearNums(p[0] - p[1], 0, hi));
+    }
+    if (type === "cmp") {
+      a = rand(0, hi); b = Math.random() < 0.2 ? a : rand(0, hi);
+      return mk('Điền dấu thích hợp:<br><span class="big">' + a + ' <span class="box">?</span> ' + b + "</span>",
+        a > b ? "&gt;" : (a < b ? "&lt;" : "="), ["&gt;", "&lt;", "="].sort(), true);
+    }
+    if (type === "count") {
+      n = rand(1, M <= 10 ? 10 : 20); s = "";
+      for (i = 1; i <= n; i++) { s += "●"; if (i % 5 === 0 && i < n) s += (i % 10 === 0 ? "<br>" : " &nbsp; "); }
+      return mk('Có bao nhiêu chấm tròn?<br><span class="dots">' + s + "</span>", n, nearNums(n, 1, 20));
+    }
+    if (type === "next") {
+      n = rand(1, hi - 1);
+      if (Math.random() < 0.5) return mk("Số liền sau của <b>" + n + "</b> là số nào?", n + 1, [n - 1, n + 2, n + 10 <= hi ? n + 10 : n]);
+      return mk("Số liền trước của <b>" + n + "</b> là số nào?", n - 1, [n + 1, n - 2 >= 0 ? n - 2 : n + 2, n]);
+    }
+    if (type === "miss") {
+      p = addPair(M);
+      if (Math.random() < 0.5) return mk('<span class="big">' + p[0] + ' + <span class="box">?</span> = ' + (p[0] + p[1]) + "</span>", p[1], nearNums(p[1], 0, hi));
+      return mk('<span class="big"><span class="box">?</span> + ' + p[1] + " = " + (p[0] + p[1]) + "</span>", p[0], nearNums(p[0], 0, hi));
+    }
+    if (type === "max") {
+      nums = [];
+      while (nums.length < 4) { n = rand(0, hi); if (!has(nums, n)) nums.push(n); }
+      var big = Math.random() < 0.5, best = nums[0];
+      for (i = 1; i < 4; i++) { if (big ? nums[i] > best : nums[i] < best) best = nums[i]; }
+      var wr = []; for (i = 0; i < 4; i++) { if (nums[i] !== best) wr.push(nums[i]); }
+      return mk("Số nào <b>" + (big ? "lớn nhất" : "bé nhất") + "</b>?", best, wr);
+    }
+    if (type === "story") {
+      if (Math.random() < 0.5) {
+        p = addPair(M);
+        if (p[0] === 0 || p[1] === 0) p = [p[0] + 1, p[1] + 1];
+        s = pick(STORIES_ADD).replace("{a}", p[0]).replace("{b}", p[1]); n = p[0] + p[1];
+      } else {
+        p = subPair(M);
+        if (p[1] === 0) p[1] = 1;
+        if (p[1] > p[0]) p[0] = p[1];
+        s = pick(STORIES_SUB).replace("{a}", p[0]).replace("{b}", p[1]); n = p[0] - p[1];
+      }
+      return mk('<div class="story">' + s + "</div>", n, nearNums(n, 0, Math.max(hi, n + 3)));
+    }
+    step = M > 20 ? pick([1, 2, 10]) : (M > 10 ? pick([1, 2]) : 1);
+    start = rand(0, hi - step * 4);
+    if (step === 10) start = rand(0, 5) * 10;
+    var miss = rand(1, 4), seq = [];
+    for (i = 0; i < 5; i++) seq.push(i === miss ? '<span class="box">?</span>' : String(start + i * step));
+    n = start + miss * step;
+    return mk("Điền số còn thiếu:<br><span class=\"big\">" + seq.join(", ") + "</span>", n, [n + 1, n - 1, n + step + 1 <= hi ? n + step : n + 2]);
+  }
+  function mathDS(M) {
+    var hi = M > 20 ? 99 : M, truth = Math.random() < 0.5, p, r, a, b, real, k = pick(["add", "add", "sub", "sub", "cmp"]);
+    var pre = "Đúng hay sai?<br>";
+    if (k === "add") { p = addPair(M); r = p[0] + p[1]; return yesNo(pre + '<span class="big">' + p[0] + " + " + p[1] + " = " + (truth ? r : wrongNum(r)) + "</span>", truth); }
+    if (k === "sub") { p = subPair(M); r = p[0] - p[1]; return yesNo(pre + '<span class="big">' + p[0] + " − " + p[1] + " = " + (truth ? r : wrongNum(r)) + "</span>", truth); }
+    a = rand(0, hi); b = Math.random() < 0.2 ? a : rand(0, hi);
+    real = a > b ? "&gt;" : (a < b ? "&lt;" : "=");
+    var shown = truth ? real : pick(["&gt;", "&lt;", "="].filter(function (x) { return x !== real; }));
+    return yesNo(pre + '<span class="big">' + a + " " + shown + " " + b + "</span>", truth);
+  }
+
+  // ================= TIẾNG VIỆT =================
+  var V = { a: "aàáảãạ", "ă": "ăằắẳẵặ", "â": "âầấẩẫậ", e: "eèéẻẽẹ", "ê": "êềếểễệ", i: "iìíỉĩị",
+    o: "oòóỏõọ", "ô": "ôồốổỗộ", "ơ": "ơờớởỡợ", u: "uùúủũụ", "ư": "ưừứửữự", y: "yỳýỷỹỵ" };
+  var TONE = ["không dấu", "dấu huyền", "dấu sắc", "dấu hỏi", "dấu ngã", "dấu nặng"];
+  var LOOK = {}, k, t;
+  for (k in V) { if (V.hasOwnProperty(k)) { for (t = 0; t < 6; t++) LOOK[V[k].charAt(t)] = { b: k, t: t }; } }
+  var ONSETS = ["ngh", "ng", "gh", "nh", "ch", "th", "kh", "ph", "tr", "gi", "qu", "b", "c", "d", "đ", "g", "h", "k", "l", "m", "n", "p", "r", "s", "t", "v", "x"];
+  var WORDS = ("ba bà bé bố mẹ cá gà hổ nhà xe đỏ cờ lá hoa mèo chó bò dê thỏ cây quả lê mía bút vở bàn ghế đèn mũ áo dép nón " +
+    "khế cua ốc tôm cò vịt ngựa voi kẹo kem kéo kiến gỗ ghẹ ngõ nghé nghỉ quạt sao trăng mưa gió nắng cơm canh rau sữa trứng " +
+    "chuối cam bưởi na ổi mít lửa núi sông cỏ cũ tủ mỏ chè phố thư rổ").split(" ");
+  // Từ + gợi ý cho trò Xếp chữ và Ô chữ
+  var CLUES = [
+    ["mèo", "Con vật kêu meo meo"], ["chó", "Con vật trông nhà, sủa gâu gâu"], ["gà", "Con vật gáy ò ó o"],
+    ["cá", "Con vật bơi dưới nước"], ["bò", "Con vật ăn cỏ, kêu ụm bò"], ["voi", "Con vật to, có vòi dài"],
+    ["thỏ", "Con vật tai dài, thích ăn cà rốt"], ["vịt", "Con vật kêu cạp cạp"], ["tôm", "Con vật dưới nước, có râu dài"],
+    ["ngựa", "Con vật chạy rất nhanh, có bờm"], ["hoa", "Nở trong vườn, có nhiều màu đẹp"], ["bút", "Đồ dùng để viết"],
+    ["vở", "Bé viết bài vào đây"], ["ghế", "Đồ dùng để ngồi"], ["bàn", "Bé đặt sách vở lên đây để học"],
+    ["mũ", "Đội trên đầu khi trời nắng"], ["dép", "Mang ở chân khi đi"], ["mẹ", "Người sinh ra bé"],
+    ["bà", "Mẹ của bố hoặc của mẹ"], ["nhà", "Nơi cả gia đình cùng ở"], ["trăng", "Sáng trên trời ban đêm"],
+    ["mưa", "Nước rơi từ trên trời xuống"], ["cam", "Quả tròn, vị ngọt chua"], ["chuối", "Quả dài, chín có màu vàng"],
+    ["sữa", "Bé uống để mau lớn"], ["cơm", "Nấu từ gạo, ăn mỗi ngày"], ["lửa", "Nóng, cháy bập bùng"],
+    ["sông", "Dòng nước chảy dài"], ["núi", "Cao hơn đồi rất nhiều"], ["gió", "Thổi làm lá cây đung đưa"],
+    ["kéo", "Đồ dùng để cắt giấy"], ["sao", "Lấp lánh trên trời đêm"], ["kem", "Món ăn lạnh, ngọt"],
+    ["ổi", "Quả xanh, ruột có nhiều hạt"], ["cỏ", "Bò và dê thích ăn thứ này"], ["đèn", "Bật lên cho sáng"]
+  ];
+  for (k = 0; k < CLUES.length; k++) { if (!has(WORDS, CLUES[k][0])) WORDS.push(CLUES[k][0]); }
+
+  function placeTone(p, s) {
+    var vs = [], i, res = -1;
+    for (i = s; i < p.length; i++) { if (V[p.charAt(i)]) vs.push(i); }
+    if (!vs.length) return -1;
+    for (i = 0; i < vs.length; i++) { if ("ăâêôơư".indexOf(p.charAt(vs[i])) >= 0) res = vs[i]; }
+    if (res >= 0) return res;
+    var last = vs[vs.length - 1];
+    if (vs.length === 1 || last < p.length - 1) return last;
+    var g = p.substring(vs[0], last + 1);
+    if (g === "oa" || g === "oe" || g === "uy") return vs[1];
+    if (vs.length === 3) return vs[1];
+    return vs[0];
+  }
+  function analyze(w) {
+    var plain = "", tone = 0, pos = -1, i, ch, L, on = "";
+    for (i = 0; i < w.length; i++) {
+      ch = w.charAt(i); L = LOOK[ch];
+      if (L) { plain += L.b; if (L.t > 0) { tone = L.t; pos = i; } } else plain += ch;
+    }
+    for (i = 0; i < ONSETS.length; i++) {
+      if (plain.indexOf(ONSETS[i]) === 0 && plain.length > ONSETS[i].length && V[plain.charAt(ONSETS[i].length)]) { on = ONSETS[i]; break; }
+    }
+    if (pos < 0) pos = placeTone(plain, on.length);
+    return { w: w, plain: plain, on: on, rime: plain.substr(on.length), tone: tone, pos: pos };
+  }
+  function withTone(a, tn) {
+    var p = a.plain, ch = p.charAt(a.pos);
+    return p.substr(0, a.pos) + V[ch].charAt(tn) + p.substr(a.pos + 1);
+  }
+  var AW = []; for (k = 0; k < WORDS.length; k++) AW.push(analyze(WORDS[k]));
+  function otherVals(field, not) {
+    var out = [], i, v;
+    for (i = 0; i < AW.length; i++) { v = AW[i][field]; if (v && v !== not && !has(out, v)) out.push(v); }
+    return shuffle(out);
+  }
+  var SWAP = { c: "k", k: "c", g: "gh", gh: "g", ng: "ngh", ngh: "ng" };
+  var SENT = [
+    ["Bé đá ___.", "bóng", ["mưa", "gió", "cơm"]],
+    ["Con mèo kêu ___.", "meo meo", ["gâu gâu", "ò ó o", "cạp cạp"]],
+    ["Con chó sủa ___.", "gâu gâu", ["meo meo", "ò ó o", "ụt ịt"]],
+    ["Gà trống gáy ___.", "ò ó o", ["meo meo", "gâu gâu", "cạp cạp"]],
+    ["Lá cây có màu ___.", "xanh", ["tím", "đen", "hồng"]],
+    ["Con cá bơi dưới ___.", "nước", ["cây", "mây", "bàn"]],
+    ["Chim bay trên ___.", "trời", ["nước", "đất", "bàn"]],
+    ["Bé dùng ___ để viết bài.", "bút", ["dép", "mũ", "bát"]],
+    ["Bé dùng ___ để ăn cơm.", "đũa", ["bút", "giày", "lược"]],
+    ["Con ___ có cái vòi dài.", "voi", ["mèo", "gà", "cá"]],
+    ["Con thỏ thích ăn ___.", "cà rốt", ["xương", "cá", "thóc"]],
+    ["Quả chanh có vị ___.", "chua", ["ngọt", "mặn", "cay"]],
+    ["Đường có vị ___.", "ngọt", ["chua", "mặn", "đắng"]],
+    ["Muối có vị ___.", "mặn", ["ngọt", "chua", "nhạt"]],
+    ["Buổi tối, bé đi ___.", "ngủ", ["bơi", "bay", "đá"]],
+    ["Mặt trời mọc ở đằng ___.", "đông", ["tây", "nam", "bắc"]],
+    ["Bé đi học ở ___.", "trường", ["chợ", "bếp", "ao"]],
+    ["Mùa hè trời ___.", "nóng", ["lạnh", "tối", "mặn"]],
+    ["Bà kể ___ cho bé nghe.", "chuyện", ["cơm", "nhà", "bút"]],
+    ["Bé ___ tay trước khi ăn.", "rửa", ["đá", "ngủ", "hát"]]
+  ];
+  function big(w) { return '<span class="big">' + w + "</span>"; }
+  function pickA(cond) { var a; do { a = pick(AW); } while (!cond(a)); return a; }
+  function tvQ(lv) {
+    var type = pick(lv === 1 ? ["ghep", "ghep", "dau", "dau", "am", "cau", "cau"] :
+      ["ghep", "dau", "am", "van", "van", "chinhta", "chinhta", "cau"]);
+    var a, wr, s, t2;
+    if (type === "cau") {
+      s = pick(SENT);
+      return mk("Chọn từ điền vào chỗ trống:<br><b>" + s[0].replace("___", '<span class="box">&nbsp;?&nbsp;</span>') + "</b>", s[1], s[2]);
+    }
+    if (type === "chinhta") {
+      a = pickA(function (x) { return SWAP[x.on]; });
+      return mk("Từ nào viết <b>đúng</b> chính tả?", a.w, [SWAP[a.on] + a.w.substr(a.on.length)]);
+    }
+    a = pickA(function (x) { return x.pos >= 0 && (type !== "am" || x.on); });
+    if (type === "ghep") {
+      wr = [];
+      for (t2 = 0; t2 < 6; t2++) { if (t2 !== a.tone) wr.push(withTone(a, t2)); }
+      s = (a.on ? a.on + " + " : "") + a.rime + " + " + TONE[a.tone];
+      return mk("Ghép thành tiếng:<br><b>" + s + "</b>", a.w, shuffle(wr));
+    }
+    if (type === "dau") {
+      wr = [];
+      for (t2 = 0; t2 < 6; t2++) { if (t2 !== a.tone) wr.push(TONE[t2]); }
+      return mk("Tiếng " + big(a.w) + "<br>có dấu gì?", TONE[a.tone], shuffle(wr));
+    }
+    if (type === "am") return mk("Tiếng " + big(a.w) + "<br>có âm đầu là gì?", a.on, otherVals("on", a.on));
+    return mk("Tiếng " + big(a.w) + "<br>có vần gì?", a.rime, otherVals("rime", a.rime));
+  }
+  function tvDS() {
+    var type = pick(["chinhta", "chinhta", "van", "dau", "am"]), truth = Math.random() < 0.5, a, v;
+    var pre = "Đúng hay sai?<br>";
+    if (type === "chinhta") {
+      a = pickA(function (x) { return SWAP[x.on]; });
+      return yesNo(pre + "Từ " + big(truth ? a.w : SWAP[a.on] + a.w.substr(a.on.length)) + "<br>viết đúng chính tả.", truth);
+    }
+    a = pickA(function (x) { return x.pos >= 0 && x.on; });
+    if (type === "van") { v = truth ? a.rime : otherVals("rime", a.rime)[0]; return yesNo(pre + "Tiếng " + big(a.w) + "<br>có vần <b>" + v + "</b>.", truth); }
+    if (type === "am") { v = truth ? a.on : otherVals("on", a.on)[0]; return yesNo(pre + "Tiếng " + big(a.w) + "<br>có âm đầu <b>" + v + "</b>.", truth); }
+    v = truth ? a.tone : pick([0, 1, 2, 3, 4, 5].filter(function (x) { return x !== a.tone; }));
+    return yesNo(pre + "Tiếng " + big(a.w) + "<br>có <b>" + TONE[v] + "</b>.", truth);
+  }
+  function cells(chars, hideIdx) {
+    var s = "", i;
+    for (i = 0; i < chars.length; i++) s += '<span class="cell' + (i === hideIdx ? " q2" : "") + '">' + (i === hideIdx ? "?" : chars[i]) + "</span>";
+    return s;
+  }
+  function ochuQ() {
+    var c = pick(CLUES), a = analyze(c[0]), base, wr = [], t2, rest;
+    if (a.on && Math.random() < 0.4) {
+      rest = c[0].substr(a.on.length).split("");
+      return mk("Ô chữ: <b>" + c[1] + "</b><br>" + cells(["?"].concat(rest), 0) + "<br>Ô trống là chữ gì?", a.on, otherVals("on", a.on));
+    }
+    base = a.plain.charAt(a.pos);
+    for (t2 = 0; t2 < 6; t2++) { if (t2 !== a.tone) wr.push(V[base].charAt(t2)); }
+    return mk("Ô chữ: <b>" + c[1] + "</b><br>" + cells(c[0].split(""), a.pos) + "<br>Ô trống là chữ gì?", c[0].charAt(a.pos), shuffle(wr));
+  }
+  function xepQ() {
+    var c = pick(CLUES), tiles = c[0].split(""), n = 0;
+    do { tiles = shuffle(tiles); n++; } while (tiles.join("") === c[0] && n < 10);
+    return { kind: "xep", text: c[0], word: c[0], clue: c[1], tiles: tiles, built: [] };
+  }
+
+  // ================= LẬT THẺ =================
+  var UP = "A Ă Â B C D Đ E Ê G H I K L M N O Ô Ơ P Q R S T U Ư V X Y".split(" ");
+  function pairsFor(g) {
+    var out = [], seenR = {}, p, a, i, tries = 0, l, r, M;
+    while (out.length < 6 && tries < 500) {
+      tries++;
+      if (g === "hoa") { l = pick(UP); r = l.toLowerCase(); }
+      else if (g === "van") { a = pickA(function (x) { return x.on && x.rime.length > 1; }); l = a.w; r = a.rime; }
+      else {
+        M = g === "m10" ? 10 : (g === "m20" ? 20 : 100);
+        if (Math.random() < 0.5) { p = addPair(M); l = p[0] + " + " + p[1]; r = String(p[0] + p[1]); }
+        else { p = subPair(M); l = p[0] + " − " + p[1]; r = String(p[0] - p[1]); }
+      }
+      if (seenR[r] || seenR["L" + l]) continue;
+      seenR[r] = 1; seenR["L" + l] = 1;
+      out.push([l, r]);
+    }
+    var cards = [];
+    for (i = 0; i < out.length; i++) { cards.push({ t: out[i][0], p: i, open: false, done: false }); cards.push({ t: out[i][1], p: i, open: false, done: false }); }
+    return shuffle(cards);
+  }
+
+  // ================= BẢN ĐỒ =================
+  var TYPE_NAME = { quiz: "Chọn đáp án", ds: "Đúng hay Sai", xep: "Xếp chữ", ochu: "Ô chữ", the: "Lật thẻ" };
+  var ZONES = [
+    { n: "Đồi Số Đếm", s: [["quiz", "m10"], ["ds", "m10"], ["quiz", "m10"], ["the", "m10"]] },
+    { n: "Làng Chữ Cái", s: [["quiz", "tv1"], ["ds", "tv"], ["xep", "tv"], ["the", "hoa"]] },
+    { n: "Rừng Phép Tính", s: [["quiz", "m20"], ["ds", "m20"], ["quiz", "m20"], ["the", "m20"]] },
+    { n: "Sông Vần Điệu", s: [["quiz", "tv2"], ["ochu", "tv"], ["xep", "tv"], ["the", "van"]] },
+    { n: "Núi Số Lớn", s: [["quiz", "m100"], ["ds", "mix"], ["ochu", "tv"], ["the", "m100"]] }
+  ];
+  var STAGES = [];
+  for (k = 0; k < ZONES.length; k++) { for (t = 0; t < 4; t++) STAGES.push({ z: k, t: ZONES[k].s[t][0], g: ZONES[k].s[t][1] }); }
+  var STICKERS = [["☀", "Mặt trời"], ["☁", "Đám mây"], ["☂", "Cái ô"], ["☃", "Người tuyết"], ["✿", "Bông hoa"],
+    ["☘", "Cỏ ba lá"], ["♥", "Trái tim"], ["♪", "Nốt nhạc"], ["☺", "Mặt cười"], ["⚓", "Mỏ neo"],
+    ["✈", "Máy bay"], ["❀", "Hoa mai"], ["☎", "Điện thoại"], ["✂", "Cái kéo"], ["✏", "Bút chì"],
+    ["☕", "Tách trà"], ["♞", "Chú ngựa"], ["☾", "Mặt trăng"], ["❄", "Bông tuyết"], ["♔", "Vương miện"]];
+  var PER = 5;
+
+  function genQ(t, g) {
+    if (t === "ds") {
+      if (g === "mix") return Math.random() < 0.5 ? mathDS(100) : tvDS();
+      return g === "tv" ? tvDS() : mathDS(g === "m10" ? 10 : (g === "m20" ? 20 : 100));
+    }
+    if (t === "xep") return xepQ();
+    if (t === "ochu") return ochuQ();
+    if (g === "tv1") return tvQ(1);
+    if (g === "tv2" || g === "tv") return tvQ(2);
+    return mathQ(g === "m10" ? 10 : (g === "m20" ? 20 : 100));
+  }
+
+  // ================= LƯU TIẾN TRÌNH =================
+  var NAME = "", P, MEM = {};
+  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {} }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
+  function lsGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
+  function lsSet(key, v) { try { window.localStorage.setItem(key, v); } catch (e) {} }
+  function players() { var r = lsGet("lop1_players"); try { if (r) return JSON.parse(r); } catch (e) {} return MEM.players || []; }
+  function loadPlayer(n) {
+    var raw = lsGet("lop1_p_" + n), o = null, list = players();
+    try { if (raw) o = JSON.parse(raw); } catch (e) {}
+    if (!o && MEM["p_" + n]) o = MEM["p_" + n];
+    if (!o && !list.length) { try { raw = lsGet("lop1_save_v2"); if (raw) o = JSON.parse(raw); } catch (e) {} }
+    P = (o && o.st) ? o : freshP();
+    while (P.st.length < STAGES.length) P.st.push(0);
+    NAME = n;
+    if (!has(list, n)) { list.push(n); MEM.players = list; lsSet("lop1_players", JSON.stringify(list)); }
+    lsSet("lop1_last", n);
+    save();
+  }
+  function save() { MEM["p_" + NAME] = P; lsSet("lop1_p_" + NAME, JSON.stringify(P)); }
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
+  function nm() { return esc(NAME); }
+  P = freshP();
+  function totalStars() { var s = 0; for (var i = 0; i < P.st.length; i++) s += P.st[i]; return s; }
+  function stickerCount() { var n = 0; for (var i in P.stk) { if (P.stk.hasOwnProperty(i)) n++; } return n; }
+  function unlocked(i) { return i === 0 || P.st[i - 1] >= 2; }
+
+  // ================= NUÔI GÀ =================
+  var PET_LV = [0, 2, 6, 12, 20];
+  var PET_NAME = ["Quả trứng", "Gà con", "Gà lớn", "Gà trống", "Gà trống vua"];
+  function petLevel() { var l = 0; for (var i = 0; i < PET_LV.length; i++) { if (P.fed >= PET_LV[i]) l = i; } return l; }
+  function petSVG(l, w) {
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + Math.round(w * 0.85) + '" viewBox="0 0 260 220">';
+    var st = ' stroke="#000" stroke-width="5" ';
+    s += '<line x1="20" y1="205" x2="240" y2="205"' + st + "/>";
+    if (l === 0) {
+      s += '<ellipse cx="130" cy="125" rx="58" ry="76" fill="#fff"' + st + "/>";
+      s += '<circle cx="110" cy="95" r="8" fill="#999"/><circle cx="150" cy="140" r="11" fill="#999"/><circle cx="120" cy="165" r="6" fill="#999"/>';
+      return s + "</svg>";
+    }
+    if (l === 1) {
+      s += '<line x1="115" y1="185" x2="110" y2="205"' + st + '/><line x1="145" y1="185" x2="150" y2="205"' + st + "/>";
+      s += '<circle cx="130" cy="145" r="45" fill="#fff"' + st + '/><circle cx="130" cy="78" r="32" fill="#fff"' + st + "/>";
+      s += '<circle cx="142" cy="72" r="5" fill="#000"/><polygon points="160,78 182,86 160,94" fill="#777"' + st + "/>";
+      s += '<path d="M100 140 Q115 165 140 150" fill="none"' + st + "/>";
+      return s + "</svg>";
+    }
+    s += '<line x1="110" y1="180" x2="105" y2="205"' + st + '/><line x1="140" y1="180" x2="145" y2="205"' + st + "/>";
+    if (l >= 3) {
+      s += '<path d="M60 130 Q20 60 45 40 M60 130 Q30 80 70 55 M65 135 Q55 85 95 75" fill="none" stroke="#000" stroke-width="9"/>';
+    } else {
+      s += '<path d="M58 135 L38 100 L70 115 Z" fill="#fff"' + st + "/>";
+    }
+    s += '<ellipse cx="120" cy="145" rx="68" ry="45" fill="#fff"' + st + "/>";
+    s += '<path d="M95 140 Q125 175 155 140" fill="#aaa"' + st + "/>";
+    s += '<circle cx="180" cy="88" r="30" fill="#fff"' + st + "/>";
+    if (l >= 3) s += '<circle cx="168" cy="55" r="10" fill="#555"/><circle cx="183" cy="50" r="12" fill="#555"/><circle cx="198" cy="56" r="10" fill="#555"/><ellipse cx="200" cy="118" rx="7" ry="12" fill="#555"/>';
+    else s += '<circle cx="182" cy="58" r="8" fill="#555"/>';
+    if (l >= 4) s += '<polygon points="160,48 165,15 178,35 185,8 192,35 205,15 208,48" fill="#fff"' + st + "/>";
+    s += '<circle cx="190" cy="82" r="5" fill="#000"/><polygon points="208,88 232,96 208,104" fill="#777"' + st + "/>";
+    return s + "</svg>";
+  }
+
+  // ================= TRẠNG THÁI CHƠI =================
+  var S = { mode: "", stage: -1, subj: "", lvl: 0, qs: [], i: 0, score: 0, chosen: -1, cards: [], flip: [], moves: 0, msg: "" };
+  var app = document.getElementById("app");
+  var FREE_NAMES = { toan: "Toán", tv: "Tiếng Việt", tron: "Toán + Tiếng Việt" };
+  function topBar(left, back) {
+    return '<div class="top"><span class="l"><b>' + nm() + "</b> · " + left + '</span><span class="r"><button class="btn small" data-act="' +
+      (back || "home") + '">' + (back === "map" ? "Bản đồ" : "Trang chủ") + "</button></span></div>";
+  }
+  function starStr(n) { var s = "", i; for (i = 0; i < 3; i++) s += i < n ? "★" : "☆"; return s; }
+
+  function home() {
+    S.mode = "";
+    var l = petLevel();
+    app.innerHTML = "<h1>Chào " + nm() + "!</h1>" +
+      '<div class="pet">' + petSVG(l, 170) + "</div>" +
+      '<div class="stat">' + PET_NAME[l] + " · Hạt thóc: <b>" + P.seeds + "</b> · Sao: <b>" + totalStars() + "/" + (STAGES.length * 3) +
+      "</b> · Nhãn: <b>" + stickerCount() + "/" + STICKERS.length + "</b></div>" +
+      '<button class="btn dark" data-act="map">Bản đồ phiêu lưu</button>' +
+      '<table class="g"><tr><td><button class="btn" data-act="pet">Nuôi gà</button></td>' +
+      '<td><button class="btn" data-act="album">Album nhãn dán</button></td></tr></table>' +
+      '<button class="btn" data-act="free">Luyện tập tự do</button>' +
+      '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button></p>';
+  }
+  function nameScreen(err) {
+    S.mode = "";
+    var list = players(), h = "<h1>Bé học lớp 1</h1><h2>Bé tên là gì?</h2>", i;
+    if (list.length) {
+      h += '<p class="sub">Chạm vào tên của bé:</p>';
+      for (i = 0; i < list.length; i++) h += '<button class="btn' + (list[i] === NAME ? " dark" : "") + '" data-act="who" data-v="' + i + '">' + esc(list[i]) + "</button>";
+      h += "<h2>Hoặc thêm bé mới</h2>";
+    }
+    h += '<input id="nm" class="inp" type="text" maxlength="20" placeholder="Nhập tên bé" autocomplete="off">';
+    if (err) h += '<p class="fb">' + err + "</p>";
+    h += '<button class="btn dark" data-act="setname">Bắt đầu chơi</button>';
+    app.innerHTML = h;
+  }
+  function setName() {
+    var el = document.getElementById("nm"), v = el && el.value ? String(el.value) : "";
+    v = v.replace(/^\s+|\s+$/g, "").replace(/\s+/g, " ");
+    if (!v) { nameScreen("Hãy nhập tên của bé nhé!"); return; }
+    v = titleCase(v);
+    var list = players(), i;
+    for (i = 0; i < list.length; i++) { if (list[i].toLowerCase() === v.toLowerCase()) v = list[i]; }
+    loadPlayer(v); home();
+  }
+  function titleCase(s) {
+    var w = s.split(" "), i;
+    for (i = 0; i < w.length; i++) w[i] = w[i].charAt(0).toUpperCase() + w[i].substr(1).toLowerCase();
+    return w.join(" ");
+  }
+  function map() {
+    S.mode = "";
+    var h = topBar("Sao: " + totalStars() + "/" + (STAGES.length * 3) + " · Hạt thóc: " + P.seeds), z, j, i, st, cls;
+    h += '<p class="sub">Đúng từ 4 câu trở lên để mở chặng tiếp theo.</p>';
+    for (z = 0; z < ZONES.length; z++) {
+      h += '<div class="pick"><h2>' + (z + 1) + ". " + ZONES[z].n + '</h2><table class="g map"><tr>';
+      for (j = 0; j < 4; j++) {
+        i = z * 4 + j; st = STAGES[i];
+        if (!unlocked(i)) { h += '<td><button class="btn off">' + (i + 1) + '<span class="s">khoá</span></button></td>'; continue; }
+        cls = P.st[i] === 3 ? "btn done" : "btn";
+        h += '<td><button class="' + cls + '" data-act="stage" data-v="' + i + '">' + (i + 1) + '<span class="s">' + TYPE_NAME[st.t] +
+          "</span>" + '<span class="s">' + starStr(P.st[i]) + "</span></button></td>";
+      }
+      h += "</tr></table></div>";
+    }
+    app.innerHTML = h;
+  }
+  function startStage(i) {
+    var st = STAGES[i], seen = {}, q, n, tries;
+    S.mode = "map"; S.stage = i; S.i = 0; S.score = 0; S.chosen = -1; S.qs = [];
+    if (st.t === "the") { S.cards = pairsFor(st.g); S.flip = []; S.moves = 0; showCards(); return; }
+    for (n = 0; n < PER; n++) {
+      tries = 0;
+      do { q = genQ(st.t, st.g); tries++; } while (seen[q.text] && tries < 30);
+      seen[q.text] = 1; S.qs.push(q);
+    }
+    showQ();
+  }
+  function startFree(subj, lvl) {
+    var seen = {}, q, n, tries;
+    S.mode = "free"; S.subj = subj; S.lvl = lvl; S.i = 0; S.score = 0; S.chosen = -1; S.qs = [];
+    for (n = 0; n < 10; n++) {
+      tries = 0;
+      do {
+        if (subj === "toan") q = mathQ(lvl);
+        else if (subj === "tv") q = tvQ(2);
+        else q = (n % 2 === 0) ? mathQ(10) : tvQ(2);
+        tries++;
+      } while (seen[q.text] && tries < 20);
+      seen[q.text] = 1; S.qs.push(q);
+    }
+    showQ();
+  }
+  function headLeft() {
+    if (S.mode === "map") return "Chặng " + (S.stage + 1) + " · " + TYPE_NAME[STAGES[S.stage].t] + " · Câu " + (S.i + 1) + "/" + S.qs.length + " · Đúng: " + S.score;
+    return FREE_NAMES[S.subj] + " · Câu " + (S.i + 1) + "/" + S.qs.length + " · Đúng: " + S.score;
+  }
+  function nextBtn(ok, ansText) {
+    return '<div class="fb">' + (ok ? pick(["Đúng rồi! " + nm() + " giỏi quá!", "Chính xác, " + nm() + "!", "Tuyệt vời, " + nm() + "!", nm() + " giỏi lắm!"]) + " +1 hạt thóc" :
+      "Chưa đúng. Đáp án là: " + ansText) + "</div>" +
+      '<button class="btn dark" data-act="next">' + (S.i + 1 < S.qs.length ? "Câu tiếp theo" : "Xem kết quả") + "</button>";
+  }
+  function showQ() {
+    var q = S.qs[S.i];
+    if (q.kind === "xep") { showXep(); return; }
+    var html, i, cls, done = S.chosen >= 0, cols = q.opts.length === 3 ? 3 : 2;
+    html = topBar(headLeft(), S.mode === "map" ? "map" : "home") + '<div class="q">' + q.text + '</div><table class="g opts"><tr>';
+    for (i = 0; i < q.opts.length; i++) {
+      if (i > 0 && i % cols === 0) html += "</tr><tr>";
+      cls = "btn";
+      if (done && i === q.ans) cls += " right";
+      else if (done && i === S.chosen) cls += " wrong";
+      html += '<td><button class="' + cls + '" data-act="opt" data-v="' + i + '">' + q.opts[i] + "</button></td>";
+    }
+    html += "</tr></table>";
+    html += done ? nextBtn(S.chosen === q.ans, q.opts[q.ans]) : '<div class="fb"></div>';
+    app.innerHTML = html;
+  }
+  function showXep() {
+    var q = S.qs[S.i], built = "", i, h, done = q.built.length === q.tiles.length, slots = [];
+    for (i = 0; i < q.built.length; i++) built += q.tiles[q.built[i]];
+    for (i = 0; i < q.word.length; i++) slots.push(i < q.built.length ? q.tiles[q.built[i]] : "&nbsp;");
+    h = topBar(headLeft(), "map") + '<div class="q">Xếp chữ: <b>' + q.clue + "</b><br>";
+    for (i = 0; i < slots.length; i++) h += '<span class="cell">' + slots[i] + "</span>";
+    h += "</div>";
+    if (!done) {
+      h += '<div class="tiles">';
+      for (i = 0; i < q.tiles.length; i++) {
+        if (has(q.built, i)) h += '<button class="btn off">&nbsp;</button>';
+        else h += '<button class="btn" data-act="tile" data-v="' + i + '">' + q.tiles[i] + "</button>";
+      }
+      h += "</div>";
+      if (q.built.length) h += '<button class="btn back" data-act="undo">Xoá chữ cuối</button>';
+    } else {
+      h += nextBtn(built === q.word, q.word);
+    }
+    app.innerHTML = h;
+  }
+  function showCards() {
+    var h = topBar("Chặng " + (S.stage + 1) + " · Lật thẻ · Số lượt: " + S.moves, "map"), i, c, cls, left = 0;
+    var g = STAGES[S.stage].g;
+    h += '<p class="sub">' + (g === "hoa" ? "Tìm cặp chữ in hoa và chữ thường." : (g === "van" ? "Tìm cặp tiếng và vần của nó." : "Tìm cặp phép tính và kết quả.")) + "</p>";
+    h += '<table class="g cards"><tr>';
+    for (i = 0; i < S.cards.length; i++) {
+      c = S.cards[i];
+      if (!c.done) left++;
+      if (i > 0 && i % 3 === 0) h += "</tr><tr>";
+      cls = c.done ? "btn done" : (c.open ? "btn" : "btn off");
+      h += '<td><button class="' + cls + '" data-act="card" data-v="' + i + '">' + (c.open || c.done ? c.t : "?") + "</button></td>";
+    }
+    h += "</tr></table>";
+    if (!left) h += '<div class="fb">Tìm hết rồi! Giỏi quá!</div><button class="btn dark" data-act="cardsdone">Xem kết quả</button>';
+    else if (S.flip.length === 2) h += '<div class="fb">Chưa khớp, thử lại nhé.</div>';
+    app.innerHTML = h;
+  }
+  function tapCard(i) {
+    var c = S.cards[i], a, b;
+    if (c.done || c.open) return;
+    if (S.flip.length === 2) { S.cards[S.flip[0]].open = false; S.cards[S.flip[1]].open = false; S.flip = []; }
+    c.open = true; S.flip.push(i);
+    if (S.flip.length === 2) {
+      S.moves++;
+      a = S.cards[S.flip[0]]; b = S.cards[S.flip[1]];
+      if (a.p === b.p) { a.done = b.done = true; a.open = b.open = false; S.flip = []; }
+    }
+    showCards();
+  }
+  function stageResult(correct, total, stars, earned) {
+    var i = S.stage, prev = P.st[i], h, newStk = false, msg;
+    P.seeds += earned;
+    if (stars > prev) P.st[i] = stars;
+    if (stars === 3 && !P.stk[i]) { P.stk[i] = 1; newStk = true; }
+    save();
+    if (stars === 3) msg = "Xuất sắc!"; else if (stars === 2) msg = "Giỏi lắm! Qua chặng rồi!"; else if (stars === 1) msg = "Hoàn thành! Thử lại để được 3 sao nhé!";
+    else msg = "Chưa qua chặng. Cần đúng 4 câu, mình thử lại nhé!";
+    msg = nameMsg(msg);
+    h = "<h1>Chặng " + (i + 1) + "</h1>";
+    h += total ? '<div class="score">' + correct + "/" + total + "</div>" : '<div class="score">' + S.moves + " lượt</div>";
+    h += '<div class="stars">' + starStr(stars) + "</div><h2>" + msg + "</h2>";
+    h += '<p class="sub">Nhận được <b>' + earned + " hạt thóc</b>. Đang có " + P.seeds + " hạt.</p>";
+    if (newStk) h += '<div class="pick"><h2>Nhãn dán mới!</h2><div class="gift">' + STICKERS[i][0] + '</div><p class="sub">' + STICKERS[i][1] + "</p></div>";
+    if (stars >= 2 && prev < 2 && i + 1 < STAGES.length) h += '<p class="sub"><b>Đã mở khoá chặng ' + (i + 2) + "!</b></p>";
+    if (stars >= 2 && i + 1 < STAGES.length) h += '<button class="btn dark" data-act="stage" data-v="' + (i + 1) + '">Chặng tiếp theo</button>';
+    h += '<table class="g"><tr><td><button class="btn" data-act="stage" data-v="' + i + '">Chơi lại</button></td>' +
+      '<td><button class="btn" data-act="map">Bản đồ</button></td></tr></table>';
+    if (P.seeds >= 5) h += '<button class="btn" data-act="pet">Cho gà ăn</button>';
+    app.innerHTML = h;
+  }
+  function nameMsg(m) { var i = m.indexOf("!"); return i < 0 ? m + ", " + nm() : m.substr(0, i) + ", " + nm() + m.substr(i); }
+  function freeMenu() {
+    S.mode = "";
+    app.innerHTML = topBar("Luyện tập tự do · 10 câu mỗi lượt") +
+      '<div class="pick"><h2>Toán</h2>' +
+      '<button class="btn" data-act="free1" data-v="toan" data-l="10">Trong phạm vi 10</button>' +
+      '<button class="btn" data-act="free1" data-v="toan" data-l="20">Trong phạm vi 20</button>' +
+      '<button class="btn" data-act="free1" data-v="toan" data-l="100">Trong phạm vi 100</button></div>' +
+      '<div class="pick"><h2>Tiếng Việt</h2>' +
+      '<button class="btn" data-act="free1" data-v="tv" data-l="0">Âm, vần, dấu, chính tả</button></div>' +
+      '<button class="btn dark" data-act="free1" data-v="tron" data-l="10">Trộn cả hai môn</button>';
+  }
+  function freeResult() {
+    var n = S.qs.length, stars = S.score === n ? 3 : (S.score >= 7 ? 2 : (S.score >= 4 ? 1 : 0)), msg;
+    P.seeds += S.score; save();
+    msg = S.score === n ? "Xuất sắc! Đúng hết tất cả!" : (S.score >= 7 ? "Giỏi lắm! Cố thêm chút nữa nhé!" :
+      (S.score >= 4 ? "Khá rồi! Chơi lại để giỏi hơn nhé!" : "Không sao, mình cùng luyện lại nhé!"));
+    msg = nameMsg(msg);
+    app.innerHTML = "<h1>Kết quả</h1><div class=\"score\">" + S.score + "/" + n + "</div><div class=\"stars\">" + starStr(stars) + "</div>" +
+      "<h2>" + msg + '</h2><p class="sub">Nhận được <b>' + S.score + " hạt thóc</b>. Đang có " + P.seeds + " hạt.</p>" +
+      '<button class="btn dark" data-act="again">Chơi lại</button>' +
+      '<table class="g"><tr><td><button class="btn" data-act="pet">Cho gà ăn</button></td><td><button class="btn" data-act="home">Trang chủ</button></td></tr></table>';
+  }
+  function pet(msg) {
+    S.mode = "";
+    var l = petLevel(), h, need;
+    h = topBar("Hạt thóc: " + P.seeds) + "<h1>" + PET_NAME[l] + '</h1><p class="sub">Gà của bé <b>' + nm() + '</b></p><div class="pet">' + petSVG(l, 300) + "</div>";
+    if (msg) h += '<div class="fb">' + msg + "</div>";
+    if (l < PET_LV.length - 1) { need = PET_LV[l + 1] - P.fed; h += '<p class="sub">Cho ăn thêm <b>' + need + " lần</b> nữa để " + (l === 0 ? "trứng nở" : "gà lớn lên") + ".</p>"; }
+    else h += '<p class="sub">Gà đã lớn nhất rồi! Đã cho ăn ' + P.fed + " lần.</p>";
+    h += P.seeds >= 5 ? '<button class="btn dark" data-act="feed">Cho ăn (5 hạt thóc)</button>' :
+      '<button class="btn off">Cần 5 hạt thóc để cho ăn</button><p class="note">Trả lời đúng mỗi câu được 1 hạt thóc.</p>';
+    h += '<button class="btn" data-act="map">Đi kiếm thóc trên bản đồ</button>';
+    app.innerHTML = h;
+  }
+  function feed() {
+    if (P.seeds < 5) { pet(); return; }
+    var before = petLevel();
+    P.seeds -= 5; P.fed++; save();
+    var after = petLevel();
+    pet(after > before ? "Wow! " + PET_NAME[before] + " đã thành " + PET_NAME[after] + "!" : pick(["Ngon quá! Cảm ơn bé!", "Chíp chíp, no bụng rồi!", "Ăn ngon lành!"]));
+  }
+  function album() {
+    S.mode = "";
+    var h = topBar("Nhãn dán: " + stickerCount() + "/" + STICKERS.length) + "<h1>Album của " + nm() + "</h1>" +
+      '<p class="sub">Đạt 3 sao ở mỗi chặng để nhận một nhãn dán.</p><table class="g"><tr>', i;
+    for (i = 0; i < STICKERS.length; i++) {
+      if (i > 0 && i % 4 === 0) h += "</tr><tr>";
+      h += P.stk[i] ? '<td><div class="stk"><b>' + STICKERS[i][0] + "</b><span>" + STICKERS[i][1] + "</span></div></td>" :
+        '<td><div class="stk no"><b>?</b><span>Chặng ' + (i + 1) + "</span></div></td>";
+    }
+    app.innerHTML = h + "</tr></table>";
+  }
+  function answered(ok) { if (ok) S.score++; }
+  function next() {
+    S.chosen = -1; S.i++;
+    if (S.i < S.qs.length) { showQ(); return; }
+    if (S.mode === "map") { var c = S.score; stageResult(c, S.qs.length, c === 5 ? 3 : (c === 4 ? 2 : 0), c); }
+    else freeResult();
+  }
+
+  // ================= XỬ LÝ CHẠM =================
+  function findBtn(el) {
+    while (el && el !== app) { if (el.tagName === "BUTTON") return el; el = el.parentNode; }
+    return null;
+  }
+  app.onclick = function (ev) {
+    ev = ev || window.event;
+    var b = findBtn(ev.target || ev.srcElement), act, v, q, built, i;
+    if (!b) return;
+    act = b.getAttribute("data-act"); v = b.getAttribute("data-v");
+    if (!act) return;
+    var scroll = true;
+    if (act === "home") home();
+    else if (act === "who0") nameScreen();
+    else if (act === "who") { loadPlayer(players()[parseInt(v, 10)]); home(); }
+    else if (act === "setname") setName();
+    else if (act === "map") map();
+    else if (act === "pet") pet();
+    else if (act === "feed") feed();
+    else if (act === "album") album();
+    else if (act === "free") freeMenu();
+    else if (act === "free1") startFree(v, parseInt(b.getAttribute("data-l"), 10));
+    else if (act === "again") startFree(S.subj, S.lvl);
+    else if (act === "stage") startStage(parseInt(v, 10));
+    else if (act === "opt") {
+      if (S.chosen >= 0) return;
+      S.chosen = parseInt(v, 10); answered(S.chosen === S.qs[S.i].ans); showQ(); scroll = false;
+    } else if (act === "tile") {
+      q = S.qs[S.i]; q.built.push(parseInt(v, 10));
+      if (q.built.length === q.tiles.length) {
+        built = ""; for (i = 0; i < q.built.length; i++) built += q.tiles[q.built[i]];
+        answered(built === q.word);
+      }
+      showXep(); scroll = false;
+    } else if (act === "undo") { S.qs[S.i].built.pop(); showXep(); scroll = false; }
+    else if (act === "next") next();
+    else if (act === "card") { tapCard(parseInt(v, 10)); scroll = false; }
+    else if (act === "cardsdone") {
+      var m = S.moves; stageResult(0, 0, m <= 10 ? 3 : 2, 6);
+    }
+    if (scroll) window.scrollTo(0, 0);
+  };
+  app.onkeyup = function (ev) {
+    ev = ev || window.event;
+    var el = ev.target || ev.srcElement;
+    if (el && el.id === "nm" && (ev.keyCode === 13 || ev.which === 13)) setName();
+  };
+  window.__lop1 = { mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
+  var last = lsGet("lop1_last");
+  if (last && has(players(), last)) { loadPlayer(last); home(); } else nameScreen();
+})();
+</script>
+</body>
+</html>
