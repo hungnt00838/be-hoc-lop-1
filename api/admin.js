@@ -14,7 +14,7 @@ function summary(path, rec) {
   const d = rec.data || { st: [], seeds: 0, fed: 0, stk: {} };
   let stars = 0; for (const v of d.st || []) stars += v || 0;
   return { path, name: rec.name, created: rec.created || 0, updated: rec.updated || 0, stars, seeds: d.seeds || 0, fed: d.fed || 0,
-    stickers: Object.keys(d.stk || {}).length, mons: (d.mon || []).filter(Boolean).length, data: S.cleanData(d) || S.cleanData({ st: [] }) };
+    stickers: Object.keys(d.stk || {}).length, notes: Array.isArray(rec.notes) ? rec.notes : [], mons: (d.mon || []).filter(Boolean).length, data: S.cleanData(d) || S.cleanData({ st: [] }) };
 }
 
 module.exports = async function handler(req, res) {
@@ -73,7 +73,7 @@ module.exports = async function handler(req, res) {
       if (renamed && !dob) return S.send(res, 400, { ok: false, error: "Đổi tên thì cần nhập lại ngày sinh" });
       const newPath = renamed ? S.pathFor(newName) : path;
       if (renamed && await S.readRecord(newPath)) return S.send(res, 409, { ok: false, error: "Đã có bé khác tên này" });
-      const next = { name: newName, pin: dob ? S.pinHash(newName, dob) : rec.pin, id: rec.id, data, created: rec.created || Date.now(), updated: Date.now() };
+      const next = Object.assign({}, rec, { name: newName, pin: dob ? S.pinHash(newName, dob) : rec.pin, data, created: rec.created || Date.now(), updated: Date.now() });
       await S.writeRecord(newPath, next);
       if (renamed) await S.deleteRecord(path);
       return S.send(res, 200, { ok: true, player: summary(newPath, next) });

@@ -28,9 +28,25 @@ module.exports = async function handler(req, res) {
     if (body.action === "save") {
       const data = cleanData(body.data);
       if (!data) return send(res, 400, { ok: false, error: "Thiếu dữ liệu" });
-      const next = { name: rec ? rec.name : name, pin: pinHash(name, pin), id: rec ? rec.id : undefined, data, created: rec ? rec.created : Date.now(), updated: Date.now() };
+      const next = Object.assign({}, rec || {}, { name: rec ? rec.name : name, pin: pinHash(name, pin), data, created: rec ? rec.created : Date.now(), updated: Date.now() });
       await writeRecord(path, next);
       return send(res, 200, { ok: true, updated: next.updated });
+    }
+    // ----- Ghi chú của bé -----
+    if (body.action === "notes" || body.action === "addNote" || body.action === "delNote") {
+      if (!rec) return send(res, 404, { ok: false, error: "Chưa có tài khoản" });
+      let notes = Array.isArray(rec.notes) ? rec.notes : [];
+      if (body.action === "addNote") {
+        const text = String(body.text || "").normalize("NFC").replace(/\r/g, "").trim().slice(0, 500);
+        if (!text) return send(res, 400, { ok: false, error: "Ghi chú đang trống" });
+        if (notes.length >= 300) return send(res, 400, { ok: false, error: "Đã đủ 300 ghi chú, hãy xoá bớt" });
+        notes = [{ ts: Date.now(), text }].concat(notes);
+      } else if (body.action === "delNote") {
+        const ts = Number(body.ts) || 0;
+        notes = notes.filter(n => n.ts !== ts);
+      }
+      if (body.action !== "notes") { rec.notes = notes; rec.updated = Date.now(); await writeRecord(path, rec); }
+      return send(res, 200, { ok: true, notes });
     }
     return send(res, 400, { ok: false, error: "Hành động không hợp lệ" });
   } catch (e) {

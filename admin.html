@@ -93,6 +93,8 @@ tr.sel td { background: #fff7d6; }
     <div class="stk" id="mon"></div>
     <h3>Nhãn dán</h3>
     <div class="stk" id="stk"></div>
+    <h3>Ghi chú của bé</h3>
+    <div id="notes" class="muted"></div>
     <h3>Ảnh của bé</h3>
     <div id="phMsg" class="muted"></div>
     <div class="phs" id="phs"></div>
@@ -188,6 +190,8 @@ tr.sel td { background: #fff7d6; }
     $("stk").innerHTML = STICKERS.map((s, i) => '<label><input type="checkbox" data-stk="' + i + '"' + (p.data.stk[i] ? " checked" : "") + "> " + esc(s) + "</label>").join("");
     $("mon").innerHTML = MONS.map((s, i) => '<label><input type="checkbox" data-mon="' + i + '"' + (p.data.mon && p.data.mon[i] ? " checked" : "") + "> " + (i + 1) + ". " + esc(s) + "</label>").join("");
     $("del").classList.remove("arm"); $("del").textContent = "Xoá bé này";
+    $("notes").innerHTML = (p.notes || []).length ? p.notes.map(n => '<div class="card" style="margin:6px 0;padding:8px 12px;color:#111"><div class="muted">' + fmt(n.ts) +
+      '</div><div style="white-space:pre-wrap">' + esc(n.text) + "</div></div>").join("") : "Chưa có ghi chú nào.";
     msg("editMsg", ""); show("edit", true); render(); loadPhotos();
     $("edit").scrollIntoView({ behavior: "smooth", block: "start" });
   }

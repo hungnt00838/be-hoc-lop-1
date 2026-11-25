@@ -87,6 +87,10 @@ table.mons .btn { font-size: 24px; min-height: 150px; padding: 8px 4px; }
 .btn.ph img { display: block; width: 100%; height: auto; }
 img.lastph { max-width: 60%; height: auto; border: 3px solid #000; }
 img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
+.inp.note { text-transform: none; font-size: 28px; resize: vertical; }
+.notebox { padding: 10px 14px; }
+.note-d { font-size: 18px; color: #555; }
+.note-t { font-size: 26px; margin: 6px 0 10px; word-wrap: break-word; }
 .gift { font-size: 100px; text-align: center; line-height: 1.1; }
 </style>
 </head>
@@ -662,6 +666,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       '<td><button class="btn" data-act="album">Album nhãn dán</button></td></tr></table>' +
       '<table class="g"><tr><td><button class="btn" data-act="free">Luyện tập tự do</button></td>' +
       '<td><button class="btn" data-act="photos">Ảnh của bé</button></td></tr></table>' +
+      '<button class="btn" data-act="notes">Ghi chú</button>' +
       (ONLINE ? '<p class="note">' + ({ ok: "Đã lưu trên máy chủ.", err: "Chưa lưu được lên máy chủ, game sẽ tự thử lại.", wait: "Đang lưu lên máy chủ..." }[SYNC.state] || "") + "</p>" : "") +
       '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button>' +
       (ONLINE ? "" : ' &nbsp; <button class="btn small" data-act="backup">Sao lưu</button>') + "</p>";
@@ -1192,6 +1197,54 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     rd.readAsDataURL(f);
   }
 
+
+  // ================= GHI CHÚ CỦA BÉ =================
+  var NT = { list: null, msg: "", arm: -1 };
+  function notesScreen(msg) {
+    S.mode = "notes";
+    if (msg !== undefined) NT.msg = msg;
+    var h = topBar("Ghi chú") + "<h1>Ghi chú của " + nm() + "</h1>", i, n;
+    if (!ONLINE || !PIN) { app.innerHTML = h + '<p class="sub">Cần mở game qua trang web và đăng nhập bằng tên + ngày sinh để lưu ghi chú.</p>'; return; }
+    h += '<textarea id="note" class="inp note" maxlength="500" rows="4" placeholder="Bé viết ghi chú ở đây..."></textarea>' +
+      '<button class="btn dark" data-act="addnote">Lưu ghi chú</button>';
+    if (NT.msg) h += '<div class="fb">' + NT.msg + "</div>";
+    if (NT.list === null) { app.innerHTML = h + '<p class="sub">Đang tải ghi chú...</p>'; loadNotes(); return; }
+    if (!NT.list.length) h += '<p class="sub">Chưa có ghi chú nào.</p>';
+    for (i = 0; i < NT.list.length; i++) {
+      n = NT.list[i];
+      h += '<div class="pick notebox"><div class="note-d">' + dstr(n.ts) + " " + pad2(new Date(n.ts).getHours()) + ":" + pad2(new Date(n.ts).getMinutes()) + "</div>" +
+        '<div class="note-t">' + esc(n.text).replace(/\n/g, "<br>") + "</div>" +
+        '<button class="btn small' + (NT.arm === i ? " dark" : "") + '" data-act="delnote" data-v="' + i + '">' + (NT.arm === i ? "Bấm lần nữa để xoá" : "Xoá") + "</button></div>";
+    }
+    app.innerHTML = h;
+  }
+  function loadNotes() {
+    api({ action: "notes", name: NAME, pin: PIN }, function (err, r) {
+      if (S.mode !== "notes") return;
+      NT.list = err ? [] : r.notes;
+      notesScreen(err ? "Không tải được ghi chú: " + err.msg : undefined);
+    });
+  }
+  function addNote() {
+    var el = document.getElementById("note"), t = el && el.value ? String(el.value).replace(/^\s+|\s+$/g, "") : "";
+    if (!t) { notesScreen("Bé chưa viết gì cả!"); return; }
+    NT.arm = -1;
+    app.innerHTML = topBar("Ghi chú") + '<h2>Đang lưu...</h2>';
+    api({ action: "addNote", name: NAME, pin: PIN, text: t }, function (err, r) {
+      if (err) { NT.msg = "Chưa lưu được: " + err.msg; notesScreen(); var e2 = document.getElementById("note"); if (e2) e2.value = t; return; }
+      NT.list = r.notes; notesScreen("Đã lưu ghi chú!");
+    });
+  }
+  function delNote(i) {
+    if (NT.arm !== i) { NT.arm = i; NT.msg = ""; notesScreen(); return; }
+    var n = NT.list[i]; NT.arm = -1;
+    if (!n) return;
+    api({ action: "delNote", name: NAME, pin: PIN, ts: n.ts }, function (err, r) {
+      if (err) { notesScreen("Không xoá được: " + err.msg); return; }
+      NT.list = r.notes; notesScreen("Đã xoá ghi chú.");
+    });
+  }
+
   // ================= XỬ LÝ CHẠM =================
   function findBtn(el) {
     while (el && el !== app) { if (el.tagName === "BUTTON") return el; el = el.parentNode; }
@@ -1213,6 +1266,9 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "setname") setName();
     else if (act === "backup") backup();
     else if (act === "monsters") monsters();
+    else if (act === "notes") { NT.list = null; NT.msg = ""; NT.arm = -1; notesScreen(); }
+    else if (act === "addnote") addNote();
+    else if (act === "delnote") { delNote(parseInt(v, 10)); scroll = false; }
     else if (act === "photos") { if (S.mode !== "photo1") { PH.list = null; PH.last = null; } PH.msg = ""; photos(); }
     else if (act === "photo") { viewPhoto(parseInt(v, 10)); }
     else if (act === "undophoto") { undoPhoto(b); scroll = false; }

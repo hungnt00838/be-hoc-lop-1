@@ -42,3 +42,8 @@ python3 tools/build.py index.html
 - Trang admin → "Tự xoá ảnh": đặt số ngày (mặc định 30, 0 = không tự xoá), có nút "Xoá ngay ảnh quá hạn".
 - `api/cleanup.js` chạy mỗi ngày bằng Vercel Cron (`vercel.json`, 20:00 UTC = 3:00 giờ Việt Nam). Nếu đặt biến `CRON_SECRET`, Vercel tự gửi kèm khi gọi cron.
 - Trong game, ngay sau khi chụp có nút "Chụp nhầm? Xoá ngay".
+
+## Ghi chú của bé
+
+- Nút "Ghi chú" ở trang chủ: bé tự viết ghi chú (tối đa 500 ký tự, 300 ghi chú), xem lại và xoá. Ai đăng nhập tài khoản của bé (tên + ngày sinh) đều thấy.
+- Lưu trong file của bé (`players/<mã>.json`, trường `notes`), qua `api/player.js` (`notes`, `addNote`, `delNote`). Trang admin xem được ghi chú.
