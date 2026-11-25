@@ -1,0 +1,9 @@
+{
+  "name": "be-hoc-lop-1",
+  "private": true,
+  "description": "Game Toán và Tiếng Việt lớp 1 cho Kindle",
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@vercel/blob": "2.9.0"
+  }
+}

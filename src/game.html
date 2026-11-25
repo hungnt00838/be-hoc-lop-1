@@ -58,6 +58,8 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
   border: 4px solid #000; border-radius: 14px; margin: 0 0 14px; font-family: "VNSans", "DejaVu Sans", sans-serif; background: #fff; color: #000;  text-transform: capitalize; }
 .inp::-webkit-input-placeholder { text-transform: none; }
 .code { font-size: 34px; font-weight: bold; text-align: center; letter-spacing: 2px; margin: 14px 0 6px; white-space: nowrap; }
+.inp.pin { text-transform: none; text-align: center; padding: 14px 4px; }
+table.dob .inp { margin: 0; }
 .inp.code-in { text-transform: uppercase; text-align: center; letter-spacing: 2px; }
 .gift { font-size: 100px; text-align: center; line-height: 1.1; }
 </style>
@@ -410,10 +412,14 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
   function lsGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function lsSet(key, v) { try { window.localStorage.setItem(key, v); } catch (e) {} }
   function players() { var r = lsGet("lop1_players"); try { if (r) return JSON.parse(r); } catch (e) {} return MEM.players || []; }
-  function loadPlayer(n) {
-    var raw = lsGet("lop1_p_" + n), o = null, list = players();
+  function localData(n) {
+    var raw = lsGet("lop1_p_" + n), o = null;
     try { if (raw) o = JSON.parse(raw); } catch (e) {}
     if (!o && MEM["p_" + n]) o = MEM["p_" + n];
+    return o && o.st ? o : null;
+  }
+  function loadPlayer(n, data) {
+    var raw, o = data || localData(n), list = players();
     if (!o && !list.length) { try { raw = lsGet("lop1_save_v2"); if (raw) o = JSON.parse(raw); } catch (e) {} }
     P = (o && o.st) ? o : freshP();
     while (P.st.length < STAGES.length) P.st.push(0);
@@ -422,7 +428,54 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
     lsSet("lop1_last", n);
     save();
   }
-  function save() { MEM["p_" + NAME] = P; lsSet("lop1_p_" + NAME, JSON.stringify(P)); }
+  function save() {
+    MEM["p_" + NAME] = P; lsSet("lop1_p_" + NAME, JSON.stringify(P));
+    if (ONLINE && PIN) { SYNC.state = "wait"; clearTimeout(SYNC.timer); SYNC.timer = setTimeout(pushSync, 800); }
+  }
+  // ----- Máy chủ: mỗi bé đăng nhập bằng tên + mã PIN 4 số -----
+  var ONLINE = /^https?:$/.test(window.location ? window.location.protocol : "");
+  var PIN = "", SYNC = { state: "", timer: null, busy: false, again: false };
+  function pins() { var r = lsGet("lop1_pins"); try { if (r) return JSON.parse(r); } catch (e) {} return MEM.pins || {}; }
+  function setPin(n, p) { var o = pins(); o[n] = p; MEM.pins = o; lsSet("lop1_pins", JSON.stringify(o)); }
+  function api(body, cb) {
+    var x, done = false, NET = "Không kết nối được máy chủ";
+    function fin(err, res) { if (done) return; done = true; cb(err, res); }
+    try {
+      x = new XMLHttpRequest();
+      x.open("POST", "/api/player", true);
+      x.setRequestHeader("Content-Type", "application/json");
+      x.onreadystatechange = function () {
+        if (x.readyState !== 4) return;
+        var r = null;
+        try { r = JSON.parse(x.responseText); } catch (e) {}
+        if (x.status === 200 && r && r.ok) fin(null, r);
+        else fin({ status: x.status, msg: r && r.error ? r.error : NET }, r);
+      };
+      setTimeout(function () { if (!done) { fin({ status: 0, msg: NET }); try { x.abort(); } catch (e) {} } }, 15000);
+      x.send(JSON.stringify(body));
+    } catch (e) { fin({ status: 0, msg: NET }); }
+  }
+  function pushSync() {
+    if (!ONLINE || !PIN || !NAME) return;
+    if (SYNC.busy) { SYNC.again = true; return; }
+    SYNC.busy = true; SYNC.again = false;
+    api({ action: "save", name: NAME, pin: PIN, data: P }, function (err) {
+      SYNC.busy = false; SYNC.state = err ? "err" : "ok";
+      if (SYNC.again) pushSync();
+    });
+  }
+  function doLogin(n, pin) {
+    if (!ONLINE) { PIN = ""; loadPlayer(n); home(); return; }
+    if (!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(pin || "")) { nameScreen("Hãy nhập đủ ngày, tháng, năm sinh nhé!", n); return; }
+    app.innerHTML = "<h1>Bé học lớp 1</h1><h2>Đang vào game...</h2>";
+    var local = localData(n);
+    api({ action: "login", name: n, pin: pin, data: local }, function (err, r) {
+      if (!err) { PIN = pin; setPin(r.name, pin); loadPlayer(r.name, r.data || local); SYNC.state = "ok"; home(); return; }
+      if (err.status === 403 || err.status === 400) { nameScreen(err.msg, n); return; }
+      // Không có mạng: vẫn cho chơi, lưu trên máy và tự gửi lên máy chủ khi có mạng lại
+      PIN = pin; setPin(n, pin); loadPlayer(n); SYNC.state = "err"; home();
+    });
+  }
   function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;"); }
   function nm() { return esc(NAME); }
   P = freshP();
@@ -487,9 +540,11 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
       '<table class="g"><tr><td><button class="btn" data-act="pet">Nuôi gà</button></td>' +
       '<td><button class="btn" data-act="album">Album nhãn dán</button></td></tr></table>' +
       '<button class="btn" data-act="free">Luyện tập tự do</button>' +
-      '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button> &nbsp; <button class="btn small" data-act="backup">Sao lưu</button></p>';
+      (ONLINE ? '<p class="note">' + ({ ok: "Đã lưu trên máy chủ.", err: "Chưa lưu được lên máy chủ, game sẽ tự thử lại.", wait: "Đang lưu lên máy chủ..." }[SYNC.state] || "") + "</p>" : "") +
+      '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button>' +
+      (ONLINE ? "" : ' &nbsp; <button class="btn small" data-act="backup">Sao lưu</button>') + "</p>";
   }
-  function nameScreen(err) {
+  function nameScreen(err, pre) {
     S.mode = "";
     var list = players(), h = "<h1>Bé học lớp 1</h1><h2>Bé tên là gì?</h2>", i;
     if (list.length) {
@@ -497,9 +552,14 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
       for (i = 0; i < list.length; i++) h += '<button class="btn' + (list[i] === NAME ? " dark" : "") + '" data-act="who" data-v="' + i + '">' + esc(list[i]) + "</button>";
       h += "<h2>Hoặc thêm bé mới</h2>";
     }
-    h += '<input id="nm" class="inp" type="text" maxlength="20" placeholder="Nhập tên bé" autocomplete="off">';
+    h += '<input id="nm" class="inp" type="text" maxlength="20" placeholder="Nhập tên bé" autocomplete="off" value="' + esc(pre || "") + '">';
+    if (ONLINE) h += '<h2>Ngày sinh của bé</h2><table class="g dob"><tr>' +
+      '<td><input id="dd" class="inp pin" type="tel" maxlength="2" placeholder="Ngày" autocomplete="off"></td>' +
+      '<td><input id="mm" class="inp pin" type="tel" maxlength="2" placeholder="Tháng" autocomplete="off"></td>' +
+      '<td style="width:40%"><input id="yy" class="inp pin" type="tel" maxlength="4" placeholder="Năm" autocomplete="off"></td></tr></table>' +
+      '<p class="note">Ví dụ: 05 / 09 / 2019. Lần sau nhập đúng tên và ngày sinh này để vào, ở máy nào cũng được.</p>';
     if (err) h += '<p class="fb">' + err + "</p>";
-    h += '<button class="btn dark" data-act="setname">Bắt đầu chơi</button>';
+    h += '<button class="btn dark" data-act="setname">Vào chơi</button>';
     app.innerHTML = h;
   }
   function setName() {
@@ -509,7 +569,17 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
     v = titleCase(v);
     var list = players(), i;
     for (i = 0; i < list.length; i++) { if (list[i].toLowerCase() === v.toLowerCase()) v = list[i]; }
-    loadPlayer(v); home();
+    doLogin(v, ONLINE ? readDob() : "");
+  }
+  function numOf(id) { var el = document.getElementById(id), s = el && el.value ? String(el.value).replace(/[^0-9]/g, "") : ""; return s ? parseInt(s, 10) : 0; }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function readDob() {
+    var d = numOf("dd"), m = numOf("mm"), y = numOf("yy"), now = new Date().getFullYear(), dt;
+    if (y > 0 && y < 100) y += 2000;
+    if (!d || !m || !y || m > 12 || y < 1990 || y > now) return "bad";
+    dt = new Date(y, m - 1, d);
+    if (dt.getDate() !== d || dt.getMonth() !== m - 1) return "bad";
+    return y + "-" + pad2(m) + "-" + pad2(d);
   }
   function titleCase(s) {
     var w = s.split(" "), i;
@@ -782,7 +852,10 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
     var scroll = true;
     if (act === "home") home();
     else if (act === "who0") nameScreen();
-    else if (act === "who") { loadPlayer(players()[parseInt(v, 10)]); home(); }
+    else if (act === "who") {
+      var wn = players()[parseInt(v, 10)];
+      if (!ONLINE || pins()[wn]) doLogin(wn, pins()[wn]); else nameScreen("Nhập ngày sinh của " + esc(wn) + " nhé.", wn);
+    }
     else if (act === "setname") setName();
     else if (act === "backup") backup();
     else if (act === "restore") restore();
@@ -816,12 +889,12 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
   app.onkeyup = function (ev) {
     ev = ev || window.event;
     var el = ev.target || ev.srcElement;
-    if (el && el.id === "nm" && (ev.keyCode === 13 || ev.which === 13)) setName();
+    if (el && (el.id === "nm" || el.id === "dd" || el.id === "mm" || el.id === "yy") && (ev.keyCode === 13 || ev.which === 13)) setName();
     if (el && el.id === "code" && (ev.keyCode === 13 || ev.which === 13)) restore();
   };
   window.__lop1 = { makeCode: makeCode, readCode: readCode, getP: function () { return P; },  mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
   var last = lsGet("lop1_last");
-  if (last && has(players(), last)) { loadPlayer(last); home(); } else nameScreen();
+  if (last && has(players(), last) && (!ONLINE || pins()[last])) doLogin(last, pins()[last]); else nameScreen();
 })();
 </script>
 </body>
