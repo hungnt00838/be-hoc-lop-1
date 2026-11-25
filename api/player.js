@@ -86,7 +86,11 @@ module.exports = async function handler(req, res) {
     return send(res, 400, { ok: false, error: "Hành động không hợp lệ" });
   } catch (e) {
     console.error(e);
-    return send(res, 500, { ok: false, error: "Máy chủ lỗi, thử lại sau" });
+    return send(res, 500, {
+      ok: false, error: "Máy chủ lỗi, thử lại sau",
+      detail: String((e && e.message) || e).slice(0, 200),
+      hasToken: !!process.env.BLOB_READ_WRITE_TOKEN, access: ACCESS
+    });
   }
 };
 module.exports._test = { pathFor, pinHash, cleanData, normName, validDob };
