@@ -30,7 +30,7 @@ function cleanData(d) {
   }
   out.mon = [];
   for (let i = 0; i < 8; i++) out.mon.push(Array.isArray(d.mon) && d.mon[i] ? 1 : 0);
-  out.gz = num(d.gz, 50); out.gd = num(d.gd, 50);
+  out.gz = num(d.gz, 50); out.gd = num(d.gd, 50); out.gn = num(d.gn, 50); out.gf = num(d.gf, 50);
   out.rd = [];
   for (let i = 0; i < 40; i++) out.rd.push(Array.isArray(d.rd) && d.rd[i] ? 1 : 0);
   return out;

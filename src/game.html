@@ -64,6 +64,15 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
 .inp.pin { text-transform: none; text-align: center; padding: 14px 4px; }
 table.dob .inp { margin: 0; }
 .inp.code-in { text-transform: uppercase; text-align: center; letter-spacing: 2px; }
+.dotwrap, .findwrap { position: relative; margin: 4px auto 6px; max-width: 100%; }
+.findwrap { border: 4px solid #000; border-radius: 12px; box-sizing: content-box; -webkit-box-sizing: content-box; }
+.dotwrap svg { position: absolute; left: 0; top: 0; }
+.dot { position: absolute; border: 2px solid #000; border-radius: 50%; background: #fff; color: #000; padding: 0; font-weight: bold; text-align: center; cursor: pointer; }
+.dot.nx { background: #000; color: #fff; border-width: 3px; }
+.dot.ok { background: #ccc; color: #444; }
+.fobj { position: absolute; background: none; border: 4px solid transparent; border-radius: 50%; padding: 0; margin: 0; cursor: pointer; text-align: center; }
+.fobj svg { vertical-align: middle; }
+.fobj.found { border-color: #000; background: #e8e8e8; }
 .mzwrap { text-align: center; margin: 6px 0; }
 table.arrows { width: 70%; margin: 0 auto; }
 table.arrows .btn { font-size: 34px; min-height: 76px; padding: 4px; }
@@ -562,7 +571,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
 
   // ================= LƯU TIẾN TRÌNH =================
   var NAME = "", P, MEM = {};
-  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {}, mon: [], rd: [], gz: 0, gd: 0 }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
+  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {}, mon: [], rd: [], gz: 0, gd: 0, gn: 0, gf: 0 }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
   function lsGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function lsSet(key, v) { try { window.localStorage.setItem(key, v); } catch (e) {} }
   function players() { var r = lsGet("lop1_players"); try { if (r) return JSON.parse(r); } catch (e) {} return MEM.players || []; }
@@ -1421,20 +1430,27 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function rint(r, n) { return Math.floor(r() * n); }
   function rshuf(r, arr) { var a = arr.slice(), i, j, t; for (i = a.length - 1; i > 0; i--) { j = rint(r, i + 1); t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
   var GM = { g: "", lv: 0 };
+  var GAMES = {
+    z: { n: "Mê cung", k: "gz", ic: "gà", d: "Dẫn gà con về nhà.", win: "nhà" },
+    d: { n: "Tìm điểm khác nhau", k: "gd", ic: "sao", d: "Tìm những chỗ khác nhau giữa hai bức tranh.", win: "sao" },
+    n: { n: "Nối điểm", k: "gn", ic: "bút", d: "Chạm lần lượt các số 1, 2, 3... để hiện ra hình.", win: "bút" },
+    f: { n: "Tìm đồ vật", k: "gf", ic: "cá", d: "Tìm đủ những đồ vật được yêu cầu trong tranh.", win: "cá" }
+  };
+  var GAME_ORDER = ["z", "d", "n", "f"];
   function gamesMenu() {
     S.mode = "games";
-    app.innerHTML = topBar("Trò chơi") + "<h1>Trò chơi</h1>" +
-      '<p class="sub">Chơi cho vui, nghỉ ngơi một chút nhé! Mỗi trò có ' + GM_N + " màn.</p>" +
-      '<button class="btn dark" data-act="glist" data-v="z">' + ic("gà", 56) + " Mê cung<span class=\"s\">Đã qua " + (P.gz || 0) + "/" + GM_N + " màn</span></button>" +
-      '<button class="btn dark" data-act="glist" data-v="d">' + ic("sao", 56) + " Tìm điểm khác nhau<span class=\"s\">Đã qua " + (P.gd || 0) + "/" + GM_N + " màn</span></button>";
+    var h = topBar("Trò chơi") + "<h1>Trò chơi</h1>" + '<p class="sub">Chơi cho vui, nghỉ ngơi một chút nhé! Mỗi trò có ' + GM_N + " màn.</p>", i, g;
+    for (i = 0; i < GAME_ORDER.length; i++) {
+      g = GAME_ORDER[i];
+      h += '<button class="btn dark" data-act="glist" data-v="' + g + '">' + ic(GAMES[g].ic, 56) + " " + GAMES[g].n + '<span class="s">Đã qua ' + gDone(g) + "/" + GM_N + " màn</span></button>";
+    }
+    app.innerHTML = h;
   }
-  function gDone(g) { return (g === "z" ? P.gz : P.gd) || 0; }
+  function gDone(g) { return P[GAMES[g].k] || 0; }
   function gameList(g) {
     S.mode = "glist"; GM.g = g;
-    var done = gDone(g), h = topBar(g === "z" ? "Mê cung" : "Tìm điểm khác nhau", "games") +
-      "<h2>" + (g === "z" ? "Mê cung" : "Tìm điểm khác nhau") + "</h2>" +
-      '<p class="sub">' + (g === "z" ? "Dẫn gà con về nhà." : "Tìm những chỗ khác nhau giữa hai bức tranh.") + " Qua màn này sẽ mở màn sau.</p>" +
-      '<table class="g lv"><tr>', i;
+    var G = GAMES[g], done = gDone(g), h = topBar(G.n, "games") + "<h2>" + G.n + "</h2>" +
+      '<p class="sub">' + G.d + " Qua màn này sẽ mở màn sau.</p>" + '<table class="g lv"><tr>', i;
     for (i = 1; i <= GM_N; i++) {
       if (i > 1 && (i - 1) % 5 === 0) h += "</tr><tr>";
       h += i <= done + 1 ? '<td><button class="btn' + (i === done + 1 ? " dark" : "") + '" data-act="gplay" data-v="' + i + '">' + i + (i <= done ? '<span class="s">✓</span>' : "") + "</button></td>"
@@ -1442,17 +1458,150 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     }
     app.innerHTML = h + "</tr></table>";
   }
-  function gPlay(lv) { GM.lv = lv; if (GM.g === "z") mazeStart(lv); else diffStart(lv); }
-  function gWin(title) {
+  function gPlay(lv) {
+    GM.lv = lv;
+    if (GM.g === "z") mazeStart(lv); else if (GM.g === "d") diffStart(lv); else if (GM.g === "n") dotStart(lv); else findStart(lv);
+  }
+  function gWin(title, art) {
     S.mode = "gwin";
-    var first = GM.lv > gDone(GM.g), h;
-    if (first) { if (GM.g === "z") P.gz = GM.lv; else P.gd = GM.lv; P.seeds += 1; save(); }
-    h = topBar(GM.g === "z" ? "Mê cung" : "Tìm điểm khác nhau", "games") + "<h1>Hoan hô!</h1>" + pic(GM.g === "z" ? "nhà" : "sao", 150) +
+    var G = GAMES[GM.g], first = GM.lv > gDone(GM.g), h;
+    if (first) { P[G.k] = GM.lv; P.seeds += 1; save(); }
+    h = topBar(G.n, "games") + "<h1>Hoan hô!</h1>" + (art || pic(G.win, 150)) +
       "<h2>" + title + "</h2>" + (first ? '<p class="sub">Bé được thêm <b>1</b> hạt thóc.</p>' : "");
     if (GM.lv < GM_N) h += '<button class="btn dark" data-act="gplay" data-v="' + (GM.lv + 1) + '">Màn ' + (GM.lv + 1) + "</button>";
     else h += '<p class="fb">Bé đã qua hết ' + GM_N + " màn. Giỏi quá!</p>";
     h += '<table class="g"><tr><td><button class="btn" data-act="glist" data-v="' + GM.g + '">Chọn màn</button></td><td><button class="btn" data-act="games">Trò chơi khác</button></td></tr></table>';
     app.innerHTML = h;
+  }
+
+  // ----- Nối điểm -----
+  function arcPts(cx, cy, r, a0, a1, n) { var o = [], i, a; for (i = 0; i <= n; i++) { a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; o.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return o; }
+  function polar(n, f) { var o = [], i, a; for (i = 0; i < n; i++) { a = (i / n) * 2 * Math.PI - Math.PI / 2; o.push([50 + f(a) * Math.cos(a), 50 + f(a) * Math.sin(a)]); } return o; }
+  var DOT_SHAPES = [
+    ["Cánh diều", [[50, 5], [85, 40], [50, 95], [15, 40]]],
+    ["Ngôi nhà", [[20, 92], [20, 48], [8, 48], [50, 10], [92, 48], [80, 48], [80, 92]]],
+    ["Ngôi sao", polar(10, function (a) { return 0; }).map(function (p, i) { var r = i % 2 ? 19 : 45, a = (i / 10) * 2 * Math.PI - Math.PI / 2; return [50 + r * Math.cos(a), 52 + r * Math.sin(a)]; })],
+    ["Con cá", [[8, 50], [25, 30], [50, 22], [72, 30], [84, 45], [97, 27], [97, 73], [84, 55], [72, 70], [50, 78], [25, 70]]],
+    ["Cây thông", [[50, 5], [76, 35], [63, 35], [84, 62], [58, 62], [58, 92], [42, 92], [42, 62], [16, 62], [37, 35], [24, 35]]],
+    ["Trái tim", [[50, 90], [15, 56], [7, 36], [14, 18], [31, 11], [50, 24], [69, 11], [86, 18], [93, 36], [85, 56]]],
+    ["Thuyền buồm", [[8, 66], [46, 66], [46, 8], [84, 58], [52, 58], [52, 66], [92, 66], [78, 88], [22, 88]]],
+    ["Mặt trăng", arcPts(50, 50, 42, -110, 110, 8).concat(arcPts(66, 50, 34, 115, -115, 8).slice(1, 8))],
+    ["Con mèo", [[22, 92], [14, 45], [20, 8], [38, 30], [62, 30], [80, 8], [86, 45], [78, 92]]],
+    ["Tên lửa", [[50, 4], [64, 24], [64, 64], [82, 86], [62, 80], [56, 93], [44, 93], [38, 80], [18, 86], [36, 64], [36, 24]]],
+    ["Bông hoa", polar(30, function (a) { return 28 + 16 * Math.cos(5 * a); })],
+    ["Cái chuông", [[50, 8], [62, 13], [70, 30], [72, 60], [86, 78], [57, 78], [57, 90], [43, 90], [43, 78], [14, 78], [28, 60], [30, 30], [38, 13]]],
+    ["Ô tô", [[6, 76], [6, 56], [24, 52], [34, 30], [70, 30], [80, 52], [94, 56], [94, 76]]],
+    ["Chiếc lá", [[50, 96], [50, 86], [26, 72], [12, 48], [22, 22], [50, 4], [78, 22], [88, 48], [74, 72], [52, 86], [52, 96]]]
+  ];
+  var DT = null;
+  function dotPts(shape, n) {
+    var v = shape, m = v.length, len = [], tot = 0, i, out = [], extra, k, a, b, j, give;
+    if (n <= m) return v.slice();
+    for (i = 0; i < m; i++) { a = v[i]; b = v[(i + 1) % m]; len.push(Math.sqrt((b[0] - a[0]) * (b[0] - a[0]) + (b[1] - a[1]) * (b[1] - a[1]))); tot += len[i]; }
+    extra = n - m; give = [];
+    for (i = 0; i < m; i++) give.push(Math.floor(extra * len[i] / tot));
+    k = extra; for (i = 0; i < m; i++) k -= give[i];
+    while (k > 0) { j = 0; for (i = 1; i < m; i++) if (len[i] / (give[i] + 1) > len[j] / (give[j] + 1)) j = i; give[j]++; k--; }
+    for (i = 0; i < m; i++) {
+      a = v[i]; b = v[(i + 1) % m]; out.push(a);
+      for (j = 1; j <= give[i]; j++) out.push([a[0] + (b[0] - a[0]) * j / (give[i] + 1), a[1] + (b[1] - a[1]) * j / (give[i] + 1)]);
+    }
+    return out;
+  }
+  function dotStart(lv) {
+    var sh = DOT_SHAPES[(lv - 1) % DOT_SHAPES.length], n = Math.min(36, Math.max(sh[1].length, 5 + Math.round(lv * 0.65)));
+    DT = { name: sh[0], pts: dotPts(sh[1], n), next: 0, msg: "" };
+    dotDraw();
+  }
+  function dotSVG(done, W) {
+    var p = DT.pts, s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + W + '" viewBox="-6 -6 112 112">', i, d = "";
+    for (i = 0; i < done && i < p.length; i++) d += (i ? "L" : "M") + p[i][0].toFixed(1) + " " + p[i][1].toFixed(1);
+    if (done >= p.length) d += "Z";
+    if (d) s += '<path d="' + d + '" fill="' + (done >= p.length ? "#bbb" : "none") + '" stroke="#000" stroke-width="1.6" stroke-linejoin="round"/>';
+    return s + "</svg>";
+  }
+  function dotDraw() {
+    S.mode = "dots";
+    var W = 560, p = DT.pts, h, i, x, y, big = p.length > 24, bs = big ? 34 : 42;
+    h = topBar("Nối điểm · Màn " + GM.lv, "glist") +
+      '<p class="sub">Chạm số <b>' + (DT.next + 1) + "</b>. Có tất cả " + p.length + " chấm.</p>" +
+      '<div class="dotwrap" style="width:' + W + "px;height:" + W + 'px">' + dotSVG(DT.next, W);
+    for (i = 0; i < p.length; i++) {
+      x = Math.round((p[i][0] + 6) / 112 * W - bs / 2); y = Math.round((p[i][1] + 6) / 112 * W - bs / 2);
+      h += '<button class="dot' + (i < DT.next ? " ok" : "") + (i === DT.next ? " nx" : "") + '" style="left:' + x + "px;top:" + y + "px;width:" + bs + "px;height:" + bs + "px;font-size:" + (big ? 15 : 19) + 'px" data-act="dot" data-v="' + i + '">' + (i + 1) + "</button>";
+    }
+    h += "</div>" + '<p class="fb">' + (DT.msg || "&nbsp;") + "</p>" +
+      '<table class="g"><tr><td><button class="btn" data-act="dothint">Gợi ý</button></td><td><button class="btn" data-act="gplay" data-v="' + GM.lv + '">Chơi lại</button></td></tr></table>';
+    app.innerHTML = h;
+  }
+  function dotTap(i) {
+    if (i === DT.next) {
+      DT.next++; DT.msg = "";
+      if (DT.next >= DT.pts.length) { gWin("Bé vẽ được: " + DT.name + "!", '<div class="pic">' + dotSVG(DT.pts.length, 260) + "</div>"); return; }
+    } else if (i > DT.next) DT.msg = "Chưa đúng, tìm số " + (DT.next + 1) + " nhé.";
+    dotDraw();
+  }
+
+  // ----- Tìm đồ vật -----
+  var FD = null, FIND_LIKE = { "cam": "|ổi|trứng|", "trứng": "|ổi|cam|", "chim": "|vịt|gà|", "vịt": "|chim|gà|", "gà": "|chim|vịt|", "bóng": "|trăng|" };
+  function findGen(lv) {
+    var r = rng(lv * 6271 + 11), kinds = lv <= 15 ? 1 : (lv <= 35 ? 2 : 3), total = Math.min(30, 8 + Math.floor(lv * 0.45)),
+      cands = rshuf(r, COUNTABLE), tg = cands.slice(0, kinds), want = [], i, k, items = [], other = [], g, cells, cw, pos, sz;
+    for (i = 0; i < ICON_WORDS.length; i++) {
+      var w = ICON_WORDS[i], used = false;
+      for (k = 0; k < tg.length; k++) if (tg[k][0] === w || (FIND_LIKE[tg[k][0]] || "").indexOf("|" + w + "|") >= 0) used = true;
+      if (!used) other.push(w);
+    }
+    for (k = 0; k < kinds; k++) { want.push(1 + rint(r, kinds === 1 ? 4 : (kinds === 2 ? 3 : 2))); for (i = 0; i < want[k]; i++) items.push({ w: tg[k][0], t: k }); }
+    while (items.length < total) items.push({ w: other[rint(r, other.length)], t: -1 });
+    items = rshuf(r, items);
+    g = Math.ceil(Math.sqrt(total * 1.15)); cw = 100 / g; cells = [];
+    for (i = 0; i < g * g; i++) cells.push(i);
+    cells = rshuf(r, cells);
+    for (i = 0; i < items.length; i++) {
+      pos = cells[i]; sz = lv > 25 ? 0.62 + r() * 0.3 : 0.82;
+      items[i].x = (pos % g) * cw + (cw * (1 - sz)) * r(); items[i].y = Math.floor(pos / g) * cw + (cw * (1 - sz)) * r(); items[i].s = cw * sz;
+      items[i].m = lv > 30 && r() < 0.4 ? 1 : 0;
+    }
+    return { tg: tg, want: want, got: [0, 0, 0], items: items, found: {}, msg: "", miss: 0 };
+  }
+  function findStart(lv) { FD = findGen(lv); findDraw(); }
+  function findAsk(withGot) {
+    var s = [], k;
+    for (k = 0; k < FD.tg.length; k++) s.push("<b>" + FD.want[k] + " " + FD.tg[k][1] + "</b>" + (withGot ? " (" + FD.got[k] + "/" + FD.want[k] + ")" : ""));
+    return s.join(withGot ? ", " : (s.length > 2 ? ", " : " và ")).replace(/, ([^,]*)$/, withGot ? ", $1" : " và $1");
+  }
+  function findDraw() {
+    S.mode = "find";
+    var W = 560, h, i, it, px, isz, k;
+    h = topBar("Tìm đồ vật · Màn " + GM.lv, "glist") + '<p class="sub">Tìm ' + findAsk(false) + ".</p>" +
+      '<p class="sub">' + FD.tg.map(function (t) { return ic(t[0], 44); }).join(" ") + " &nbsp; Đã tìm: " + findAsk(true) + "</p>" +
+      '<div class="findwrap" style="width:' + W + "px;height:" + W + 'px">';
+    for (i = 0; i < FD.items.length; i++) {
+      it = FD.items[i]; px = Math.round(it.s / 100 * W); isz = px - 8;
+      k = ic(it.w, isz); if (it.m) k = '<span class="mir">' + k + "</span>";
+      h += '<button class="fobj' + (FD.found[i] ? " found" : "") + '" style="left:' + Math.round(it.x / 100 * W) + "px;top:" + Math.round(it.y / 100 * W) + "px;width:" + px + "px;height:" + px + 'px" data-act="fobj" data-v="' + i + '">' + k + "</button>";
+    }
+    h += "</div>" + '<p class="fb">' + (FD.msg || "&nbsp;") + "</p>" +
+      '<table class="g"><tr><td><button class="btn" data-act="fhint">Gợi ý</button></td><td><button class="btn" data-act="gplay" data-v="' + GM.lv + '">Chơi lại</button></td></tr></table>';
+    app.innerHTML = h;
+  }
+  function findTap(i) {
+    var it = FD.items[i], k, done = true;
+    if (FD.found[i]) return;
+    if (it.t >= 0) { FD.found[i] = 1; FD.got[it.t]++; FD.msg = pick(["Đúng rồi!", "Giỏi quá!", "Tìm ra rồi!"]); }
+    else { FD.miss++; FD.msg = "Đó không phải thứ cần tìm."; }
+    for (k = 0; k < FD.tg.length; k++) if (FD.got[k] < FD.want[k]) done = false;
+    if (done) { gWin("Bé đã tìm đủ " + findAsk(false) + "!"); return; }
+    findDraw();
+  }
+  function findHint() {
+    for (var i = 0; i < FD.items.length; i++) if (FD.items[i].t >= 0 && !FD.found[i]) {
+      var it = FD.items[i], cx = it.x + it.s / 2, cy = it.y + it.s / 2;
+      FD.msg = "Gợi ý: nhìn ở phía " + (cy < 34 ? "trên" : (cy > 66 ? "dưới" : "giữa")) + (cx < 34 ? ", bên trái" : (cx > 66 ? ", bên phải" : "")) + " của tranh.";
+      break;
+    }
+    findDraw();
   }
 
   // ----- Mê cung -----
@@ -1782,6 +1931,10 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "mz") { mazeMove(parseInt(v, 10)); scroll = false; }
     else if (act === "dft") { diffTap(parseInt(v, 10)); scroll = false; }
     else if (act === "dfhint") { diffHint(); scroll = false; }
+    else if (act === "dot") { dotTap(parseInt(v, 10)); scroll = false; }
+    else if (act === "dothint") { DT.msg = "Số " + (DT.next + 1) + " là chấm đậm màu đen."; dotDraw(); scroll = false; }
+    else if (act === "fobj") { findTap(parseInt(v, 10)); scroll = false; }
+    else if (act === "fhint") { findHint(); scroll = false; }
     else if (act === "story") { RD.k = parseInt(v, 10); RD.pg = 0; storyPage(); }
     else if (act === "pgnext") { RD.pg++; storyPage(); }
     else if (act === "pgprev") { RD.pg--; storyPage(); }
