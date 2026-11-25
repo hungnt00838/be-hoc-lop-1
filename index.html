@@ -50,6 +50,8 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
 .tiles .btn { display: inline-block; width: 22%; margin: 1%; font-size: 46px; min-height: 96px; }
 .pick { border: 4px solid #000; border-radius: 14px; padding: 4px 14px 12px; margin-bottom: 16px; }
 .pet { text-align: center; }
+.petbtn { display: block; width: 100%; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
+.petsay { text-align: center; font-size: 26px; font-weight: bold; margin: 0 0 6px; min-height: 32px; }
 .stat { text-align: center; font-size: 24px; margin: 6px 0 16px; }
 .stk { text-align: center; border: 3px solid #000; border-radius: 12px; padding: 8px 2px; min-height: 120px; }
 .stk b { display: block; font-size: 60px; line-height: 1.1; font-weight: normal; }
@@ -632,18 +634,19 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function petSVG(l, w) {
     var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + Math.round(w * 0.85) + '" viewBox="0 0 260 220">';
     var st = ' stroke="#000" stroke-width="5" ';
-    s += '<line x1="20" y1="205" x2="240" y2="205"' + st + "/>";
+    s += '<line x1="20" y1="205" x2="240" y2="205"' + st + "/>" + '<g id="petg">';
     if (l === 0) {
       s += '<ellipse cx="130" cy="125" rx="58" ry="76" fill="#fff"' + st + "/>";
       s += '<circle cx="110" cy="95" r="8" fill="#999"/><circle cx="150" cy="140" r="11" fill="#999"/><circle cx="120" cy="165" r="6" fill="#999"/>';
-      return s + "</svg>";
+      if (P && P.fed >= 1) s += '<path d="M76 118 L92 108 L102 124 L116 106 L128 122 L142 104 L154 120 L168 110 L184 118" fill="none" stroke="#000" stroke-width="4"/>';
+      return s + "</g></svg>";
     }
     if (l === 1) {
       s += '<line x1="115" y1="185" x2="110" y2="205"' + st + '/><line x1="145" y1="185" x2="150" y2="205"' + st + "/>";
       s += '<circle cx="130" cy="145" r="45" fill="#fff"' + st + '/><circle cx="130" cy="78" r="32" fill="#fff"' + st + "/>";
       s += '<circle cx="142" cy="72" r="5" fill="#000"/><polygon points="160,78 182,86 160,94" fill="#777"' + st + "/>";
       s += '<path d="M100 140 Q115 165 140 150" fill="none"' + st + "/>";
-      return s + "</svg>";
+      return s + "</g></svg>";
     }
     s += '<line x1="110" y1="180" x2="105" y2="205"' + st + '/><line x1="140" y1="180" x2="145" y2="205"' + st + "/>";
     if (l >= 3) {
@@ -658,7 +661,31 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else s += '<circle cx="182" cy="58" r="8" fill="#555"/>';
     if (l >= 4) s += '<polygon points="160,48 165,15 178,35 185,8 192,35 205,15 208,48" fill="#fff"' + st + "/>";
     s += '<circle cx="190" cy="82" r="5" fill="#000"/><polygon points="208,88 232,96 208,104" fill="#777"' + st + "/>";
-    return s + "</svg>";
+    return s + "</g></svg>";
+  }
+
+  // Chuyển động hợp màn e-ink: vài khung hình rời rạc, đổi chậm rồi dừng hẳn
+  var PET_SAY = ["Cốc cốc! Ai ở ngoài đó?", "Chiếp chiếp!", "Cục ta cục tác!", "Ò ó o!", "Ò ó o o o!"];
+  var WIG = { t: null, n: 0 };
+  function petBox(l, w) {
+    return '<button class="petbtn" data-act="poke"><div class="pet">' + petSVG(l, w) + '</div></button><p class="petsay" id="petsay">&nbsp;</p>';
+  }
+  function petWiggle(say) {
+    var l = petLevel(), frames, i = 0, say1 = document.getElementById("petsay");
+    frames = l === 0 ? ["rotate(-12 130 200)", "rotate(12 130 200)", "rotate(-8 130 200)", "rotate(8 130 200)", ""]
+      : ["translate(0 -18)", "", "translate(0 -18)", ""];
+    clearTimeout(WIG.t); WIG.n++;
+    var my = WIG.n;
+    if (say && say1) say1.innerHTML = PET_SAY[l];
+    function step() {
+      var g = document.getElementById("petg");
+      if (!g || my !== WIG.n) return;
+      if (frames[i]) g.setAttribute("transform", frames[i]); else g.removeAttribute("transform");
+      i++;
+      if (i < frames.length) WIG.t = setTimeout(step, 380);
+      else WIG.t = setTimeout(function () { var s2 = document.getElementById("petsay"); if (s2 && my === WIG.n) s2.innerHTML = "&nbsp;"; }, 1800);
+    }
+    step();
   }
 
   // ================= TRẠNG THÁI CHƠI =================
@@ -689,7 +716,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     var l = petLevel();
     var g = gradeStr();
     app.innerHTML = "<h1>Chào " + nm() + "!</h1>" + (g ? '<p class="grade">' + (g === "Mẫu giáo" ? "Bé đang học mẫu giáo" : "Bé đang học " + g.toLowerCase()) + "</p>" : "") +
-      '<div class="pet">' + petSVG(l, 170) + "</div>" +
+      petBox(l, 170) +
       '<div class="stat">' + PET_NAME[l] + " · Hạt thóc: <b>" + P.seeds + "</b> · Sao: <b>" + totalStars() + "/" + (STAGES.length * 3) +
       "</b> · Nhãn: <b>" + stickerCount() + "/" + STICKERS.length + "</b></div>" +
       '<table class="g"><tr><td><button class="btn dark" data-act="map">Bản đồ phiêu lưu</button></td>' +
@@ -702,7 +729,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       '<td><button class="btn" data-act="notes">Ghi chú</button></td></tr></table>' +
       (ONLINE ? '<p class="note">' + ({ ok: "Đã lưu trên máy chủ.", err: "Chưa lưu được lên máy chủ, game sẽ tự thử lại.", wait: "Đang lưu lên máy chủ..." }[SYNC.state] || "") + "</p>" : "") +
       '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button>' +
-      (ONLINE ? "" : ' &nbsp; <button class="btn small" data-act="backup">Sao lưu</button>') + "</p>";
+      (ONLINE ? "" : ' &nbsp; <button class="btn small" data-act="backup">Sao lưu</button>') + "</p>";    setTimeout(function () { if (S.mode === "") petWiggle(false); }, 700);
   }
   function nameScreen(err, pre) {
     S.mode = "";
@@ -963,7 +990,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function pet(msg) {
     S.mode = "";
     var l = petLevel(), h, need;
-    h = topBar("Hạt thóc: " + P.seeds) + "<h1>" + PET_NAME[l] + '</h1><p class="sub">Gà của bé <b>' + nm() + '</b></p><div class="pet">' + petSVG(l, 300) + "</div>";
+    h = topBar("Hạt thóc: " + P.seeds) + "<h1>" + PET_NAME[l] + '</h1><p class="sub">Gà của bé <b>' + nm() + '</b></p>' + petBox(l, 300);
     if (msg) h += '<div class="fb">' + msg + "</div>";
     if (l < PET_LV.length - 1) { need = PET_LV[l + 1] - P.fed; h += '<p class="sub">Cho ăn thêm <b>' + need + " lần</b> nữa để " + (l === 0 ? "trứng nở" : "gà lớn lên") + ".</p>"; }
     else h += '<p class="sub">Gà đã lớn nhất rồi! Đã cho ăn ' + P.fed + " lần.</p>";
@@ -1578,7 +1605,8 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "restore2") restore2();
     else if (act === "map") map();
     else if (act === "pet") pet();
-    else if (act === "feed") feed();
+    else if (act === "feed") { feed(); setTimeout(function () { petWiggle(true); }, 300); }
+    else if (act === "poke") { petWiggle(true); scroll = false; }
     else if (act === "album") album();
     else if (act === "free") freeMenu();
     else if (act === "free1") startFree(v, parseInt(b.getAttribute("data-l"), 10));
