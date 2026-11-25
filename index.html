@@ -86,6 +86,8 @@ table.dfg td { padding: 0; text-align: center; vertical-align: middle; }
 .dfc.found { border-color: #000; }
 .mir { display: inline-block; -webkit-transform: scaleX(-1); transform: scaleX(-1); }
 table.lv .btn { padding: 10px 2px; min-height: 64px; }
+.bfb { font-size: 24px; margin: 6px 0 8px; min-height: 0; }
+table.opts.small .btn { min-height: 0; padding: 8px 4px; font-size: 24px; }
 .grade { text-align: center; font-size: 26px; font-weight: bold; margin: -4px 0 8px; }
 .panel { border: 5px solid #000; border-radius: 16px; padding: 18px 8px; margin: 8px 0 12px; text-align: center; min-height: 190px; }
 .panel svg { margin: 0 6px; }
@@ -1151,10 +1153,13 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function showBattle() {
     var m = MON[S.mon], q = S.q, done = S.chosen >= 0, h, i, cls, cols = q.opts.length === 3 ? 3 : 2;
     h = '<div class="top"><span class="l"><b>' + nm() + '</b> · Đánh quái vật</span><span class="r"><button class="btn small" data-act="monsters">Bỏ chạy</button></span></div>';
-    h += '<table class="arena"><tr><td class="side l">' + heroSVG(170, S.state === "hit" ? "atk" : (S.state === "hurt" ? "hurt" : "idle")) +
+    h += '<table class="arena"><tr><td class="side l">' + heroSVG(done ? 120 : 150, S.state === "hit" ? "atk" : (S.state === "hurt" ? "hurt" : "idle")) +
       '<div class="mname">' + nm() + '</div><div class="hearts">' + hearts(S.php) + '</div></td><td class="vs">VS</td><td class="side r">' +
-      monSVG(S.mon, 150, S.state === "hit" ? "hit" : "") + '<div class="mname">' + m.n + '</div><div class="hp">' + hpBar(S.mhp, m.hp) + "</div></td></tr></table>";
-    h += '<div class="q">' + q.text + '</div><table class="g opts"><tr>';
+      monSVG(S.mon, done ? 105 : 130, S.state === "hit" ? "hit" : "") + '<div class="mname">' + m.n + '</div><div class="hp">' + hpBar(S.mhp, m.hp) + "</div></td></tr></table>";
+    h += '<div class="q">' + q.text + "</div>";
+    // Đã trả lời: nút đánh tiếp nằm ngay dưới câu hỏi, không phải kéo xuống
+    if (done) h += '<div class="fb bfb">' + S.fb + '</div><button class="btn dark" data-act="bnext">' + (S.mhp <= 0 ? "Xem chiến thắng" : (S.php <= 0 ? "Xem kết quả" : "Đánh tiếp")) + "</button>";
+    h += '<table class="g opts' + (done ? " small" : "") + '"><tr>';
     for (i = 0; i < q.opts.length; i++) {
       if (i > 0 && i % cols === 0) h += "</tr><tr>";
       cls = "btn";
@@ -1162,7 +1167,6 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       h += '<td><button class="' + cls + '" data-act="opt" data-v="' + i + '">' + q.opts[i] + "</button></td>";
     }
     h += "</tr></table>";
-    if (done) h += '<div class="fb">' + S.fb + '</div><button class="btn dark" data-act="bnext">' + (S.mhp <= 0 ? "Xem chiến thắng" : (S.php <= 0 ? "Xem kết quả" : "Đánh tiếp")) + "</button>";
     app.innerHTML = h;
   }
   function battleAnswer(v) {
