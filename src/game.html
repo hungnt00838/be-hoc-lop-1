@@ -57,6 +57,8 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
 .inp { display: block; width: 100%; box-sizing: border-box; -webkit-box-sizing: border-box; font-size: 34px; padding: 14px;
   border: 4px solid #000; border-radius: 14px; margin: 0 0 14px; font-family: "VNSans", "DejaVu Sans", sans-serif; background: #fff; color: #000;  text-transform: capitalize; }
 .inp::-webkit-input-placeholder { text-transform: none; }
+.code { font-size: 34px; font-weight: bold; text-align: center; letter-spacing: 2px; margin: 14px 0 6px; white-space: nowrap; }
+.inp.code-in { text-transform: uppercase; text-align: center; letter-spacing: 2px; }
 .gift { font-size: 100px; text-align: center; line-height: 1.1; }
 </style>
 </head>
@@ -485,7 +487,7 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
       '<table class="g"><tr><td><button class="btn" data-act="pet">Nuôi gà</button></td>' +
       '<td><button class="btn" data-act="album">Album nhãn dán</button></td></tr></table>' +
       '<button class="btn" data-act="free">Luyện tập tự do</button>' +
-      '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button></p>';
+      '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button> &nbsp; <button class="btn small" data-act="backup">Sao lưu</button></p>';
   }
   function nameScreen(err) {
     S.mode = "";
@@ -653,6 +655,59 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
     app.innerHTML = h;
   }
   function nameMsg(m) { var i = m.indexOf("!"); return i < 0 ? m + ", " + nm() : m.substr(0, i) + ", " + nm() + m.substr(i); }
+  // ================= SAO LƯU =================
+  var B32 = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  function pushBits(arr, v, n) { for (var i = n - 1; i >= 0; i--) arr.push(Math.floor(v / Math.pow(2, i)) % 2); }
+  function readBits(arr, pos, n) { var v = 0; for (var i = 0; i < n; i++) v = v * 2 + arr[pos + i]; return v; }
+  function sumBits(arr) { var s = 0; for (var i = 0; i < arr.length; i++) s = (s * 33 + arr[i] + 7) % 509; return s; }
+  function makeCode() {
+    var b = [], i, out = "";
+    for (i = 0; i < STAGES.length; i++) pushBits(b, P.st[i] || 0, 2);
+    pushBits(b, Math.min(P.seeds, 65535), 16);
+    pushBits(b, Math.min(P.fed, 1023), 10);
+    pushBits(b, sumBits(b), 9);
+    for (i = 0; i < b.length; i += 5) { out += B32.charAt(readBits(b, i, 5)); if (i + 5 < b.length && (i / 5) % 5 === 4) out += "-"; }
+    return out;
+  }
+  function readCode(s) {
+    var c = String(s).toUpperCase().replace(/[^A-Z0-9]/g, ""), b = [], i, v, r;
+    if (c.length !== 15) return null;
+    for (i = 0; i < c.length; i++) { v = B32.indexOf(c.charAt(i)); if (v < 0) return null; pushBits(b, v, 5); }
+    if (sumBits(b.slice(0, 66)) !== readBits(b, 66, 9)) return null;
+    r = { st: [], seeds: readBits(b, 40, 16), fed: readBits(b, 56, 10), stk: {} };
+    for (i = 0; i < STAGES.length; i++) { r.st.push(readBits(b, i * 2, 2)); if (r.st[i] === 3) r.stk[i] = 1; }
+    return r;
+  }
+  var PENDING = null;
+  function backup(msg) {
+    S.mode = ""; PENDING = null;
+    var h = topBar("Sao lưu") + "<h1>Sao lưu của " + nm() + "</h1>" +
+      '<p class="sub">Ghi lại mã này. Khi đổi máy hoặc lỡ mất dữ liệu, nhập mã để lấy lại sao, hạt thóc, con gà và nhãn dán.</p>' +
+      '<div class="pick"><div class="code">' + makeCode() + '</div><p class="note">Sao: ' + totalStars() + " · Hạt thóc: " + P.seeds +
+      " · Đã cho gà ăn: " + P.fed + " lần</p></div>" +
+      "<h2>Khôi phục từ mã</h2>" +
+      '<input id="code" class="inp code-in" type="text" maxlength="20" placeholder="Nhập mã sao lưu" autocomplete="off">';
+    if (msg) h += '<p class="fb">' + msg + "</p>";
+    h += '<button class="btn dark" data-act="restore">Kiểm tra mã</button>';
+    app.innerHTML = h;
+  }
+  function restore() {
+    var el = document.getElementById("code"), r = readCode(el && el.value ? el.value : ""), s = 0, i;
+    if (!r) { backup("Mã chưa đúng, bạn kiểm tra lại nhé."); return; }
+    PENDING = r;
+    for (i = 0; i < r.st.length; i++) s += r.st[i];
+    app.innerHTML = topBar("Sao lưu") + "<h1>Mã đúng!</h1>" +
+      '<p class="sub">Tiến trình hiện tại của <b>' + nm() + "</b> sẽ được thay bằng:</p>" +
+      '<div class="pick"><p class="stat">Sao: <b>' + s + "</b> · Hạt thóc: <b>" + r.seeds + "</b> · Cho ăn: <b>" + r.fed + " lần</b></p>" +
+      '<div class="pet">' + petSVGFed(r.fed) + "</div></div>" +
+      '<button class="btn dark" data-act="restore2">Khôi phục</button><button class="btn" data-act="backup">Huỷ</button>';
+  }
+  function petSVGFed(f) { var l = 0; for (var i = 0; i < PET_LV.length; i++) { if (f >= PET_LV[i]) l = i; } return petSVG(l, 150); }
+  function restore2() {
+    if (!PENDING) { backup(); return; }
+    P = PENDING; PENDING = null; save();
+    home();
+  }
   function freeMenu() {
     S.mode = "";
     app.innerHTML = topBar("Luyện tập tự do · 10 câu mỗi lượt") +
@@ -729,6 +784,9 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
     else if (act === "who0") nameScreen();
     else if (act === "who") { loadPlayer(players()[parseInt(v, 10)]); home(); }
     else if (act === "setname") setName();
+    else if (act === "backup") backup();
+    else if (act === "restore") restore();
+    else if (act === "restore2") restore2();
     else if (act === "map") map();
     else if (act === "pet") pet();
     else if (act === "feed") feed();
@@ -759,8 +817,9 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
     ev = ev || window.event;
     var el = ev.target || ev.srcElement;
     if (el && el.id === "nm" && (ev.keyCode === 13 || ev.which === 13)) setName();
+    if (el && el.id === "code" && (ev.keyCode === 13 || ev.which === 13)) restore();
   };
-  window.__lop1 = { mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
+  window.__lop1 = { makeCode: makeCode, readCode: readCode, getP: function () { return P; },  mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
   var last = lsGet("lop1_last");
   if (last && has(players(), last)) { loadPlayer(last); home(); } else nameScreen();
 })();
