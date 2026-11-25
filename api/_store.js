@@ -142,4 +142,60 @@ async function cleanupPhotos(prefix, days) {
   for (let i = 0; i < old.length; i += 100) await del(old.slice(i, i + 100));
   return old.length;
 }
-module.exports = { getSettings, setSettings, cleanupPhotos, newId, ensureId, photoList, photoGet, photoPut, photoDel, jpegBuf, STAGES, normName, validDob, sha, pathFor, pinHash, cleanData, readRecord, writeRecord, deleteRecord, listPaths, send, readBody, errOut };
+// ----- Thú nuôi: tên, các cấp độ, ảnh từng cấp (admin chỉnh) -----
+const PET_FILE = "settings/pet.json";
+const DEFAULT_PET = { name: "Gà", levels: [
+  { n: "Quả trứng", need: 0, img: "" }, { n: "Gà con", need: 2, img: "" }, { n: "Gà lớn", need: 6, img: "" },
+  { n: "Gà trống", need: 12, img: "" }, { n: "Gà trống vua", need: 20, img: "" }] };
+const PET_IMG_RE = /^[a-z0-9]{6,40}\.(jpg|png)$/;
+function cleanPet(c) {
+  if (!c || typeof c !== "object" || !Array.isArray(c.levels)) return null;
+  const txt = (v, max) => String(v || "").normalize("NFC").replace(/[<>]/g, "").trim().slice(0, max);
+  const out = { name: txt(c.name, 20) || "Gà", levels: [] };
+  let last = -1;
+  for (const l of c.levels.slice(0, 12)) {
+    let need = Math.max(0, Math.min(100000, Math.floor(Number(l && l.need) || 0)));
+    if (!out.levels.length) need = 0;
+    if (need <= last) need = last + 1;
+    last = need;
+    out.levels.push({ n: txt(l && l.n, 30) || ("Cấp " + (out.levels.length + 1)), need, img: l && PET_IMG_RE.test(String(l.img || "")) ? String(l.img) : "" });
+  }
+  return out.levels.length ? out : null;
+}
+async function getPet() {
+  try { const r = await readRecord(PET_FILE); return cleanPet(r) || JSON.parse(JSON.stringify(DEFAULT_PET)); } catch (e) { return JSON.parse(JSON.stringify(DEFAULT_PET)); }
+}
+async function setPet(c) {
+  const next = cleanPet(c);
+  if (!next) return null;
+  await writeRecord(PET_FILE, next);
+  // Xoá ảnh không còn dùng
+  const used = {}; next.levels.forEach(l => { if (l.img) used["pet/" + l.img] = 1; });
+  let cursor, old = [];
+  do { const r = await list({ prefix: "pet/", cursor }); r.blobs.forEach(b => { if (!used[b.pathname]) old.push(b.pathname); }); cursor = r.hasMore ? r.cursor : null; } while (cursor);
+  if (old.length) await del(old);
+  return next;
+}
+function petImgBuf(dataUrl) {
+  const m = /^data:image\/(jpeg|png);base64,/.exec(typeof dataUrl === "string" ? dataUrl : "");
+  if (!m) return null;
+  const buf = Buffer.from(dataUrl.slice(m[0].length), "base64");
+  if (!buf.length || buf.length > 2000000) return null;
+  if (m[1] === "jpeg" && !(buf[0] === 0xff && buf[1] === 0xd8)) return null;
+  if (m[1] === "png" && !(buf[0] === 0x89 && buf[1] === 0x50)) return null;
+  return { buf, ext: m[1] === "png" ? "png" : "jpg" };
+}
+async function petImgPut(dataUrl) {
+  const b = petImgBuf(dataUrl);
+  if (!b) return null;
+  const id = newId() + "." + b.ext;
+  await put("pet/" + id, b.buf, { access: ACCESS, addRandomSuffix: false, allowOverwrite: true, contentType: b.ext === "png" ? "image/png" : "image/jpeg" });
+  return id;
+}
+async function petImgGet(id) {
+  if (!PET_IMG_RE.test(String(id || ""))) return null;
+  const r = await get("pet/" + id, { access: ACCESS, useCache: false });
+  if (!r || r.statusCode !== 200) return null;
+  return { buf: Buffer.from(await new Response(r.stream).arrayBuffer()), type: /\.png$/.test(id) ? "image/png" : "image/jpeg" };
+}
+module.exports = { getPet, setPet, cleanPet, petImgPut, petImgGet, DEFAULT_PET, getSettings, setSettings, cleanupPhotos, newId, ensureId, photoList, photoGet, photoPut, photoDel, jpegBuf, STAGES, normName, validDob, sha, pathFor, pinHash, cleanData, readRecord, writeRecord, deleteRecord, listPaths, send, readBody, errOut };

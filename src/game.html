@@ -630,11 +630,35 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   // ================= NUÔI GÀ =================
   var PET_LV = [0, 2, 6, 12, 20];
   var PET_NAME = ["Quả trứng", "Gà con", "Gà lớn", "Gà trống", "Gà trống vua"];
+  var PET_IMG = [], PET_N = "Gà";
+  // Cấu hình thú nuôi do admin đặt (tên, cấp độ, ảnh từng cấp)
+  function applyPet(c) {
+    if (!c || !c.levels || !c.levels.length) return;
+    var lv = [], nm2 = [], im = [], i;
+    for (i = 0; i < c.levels.length; i++) { lv.push(c.levels[i].need); nm2.push(c.levels[i].n); im.push(c.levels[i].img || ""); }
+    PET_LV = lv; PET_NAME = nm2; PET_IMG = im; PET_N = c.name || "Gà";
+  }
+  function petLow() { return PET_N.toLowerCase(); }
+  (function () { var r = lsGet("lop1_pet"); try { if (r) applyPet(JSON.parse(r)); } catch (e) {} })();
+  function loadPetCfg() {
+    if (!ONLINE) return;
+    api({ action: "config" }, function (err, r) {
+      if (err || !r || !r.pet) return;
+      var s = JSON.stringify(r.pet), changed = s !== lsGet("lop1_pet");
+      lsSet("lop1_pet", s); applyPet(r.pet);
+      if (changed && document.getElementById("petg")) { if (S.mode === "" && /data-act="map"/.test(app.innerHTML)) home(); }
+    }, "/api/pet");
+  }
   function petLevel() { var l = 0; for (var i = 0; i < PET_LV.length; i++) { if (P.fed >= PET_LV[i]) l = i; } return l; }
   function petSVG(l, w) {
-    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + Math.round(w * 250 / 260) + '" viewBox="0 -30 260 250" style="overflow:visible">';
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="' + w + '" height="' + Math.round(w * 250 / 260) + '" viewBox="0 -30 260 250" style="overflow:visible">';
     var st = ' stroke="#000" stroke-width="5" ';
     s += '<line x1="20" y1="205" x2="240" y2="205"' + st + "/>" + '<g id="petg">';
+    if (PET_IMG[l]) {
+      var u = "/api/pet?img=" + encodeURIComponent(PET_IMG[l]);
+      return s + '<image x="10" y="-28" width="240" height="232" preserveAspectRatio="xMidYMax meet" href="' + u + '" xlink:href="' + u + '"/></g></svg>';
+    }
+    l = Math.min(l, 4);
     if (l === 0) {
       s += '<g transform="translate(130 204) scale(1.32) translate(-130 -204)">';
       s += '<ellipse cx="130" cy="125" rx="58" ry="76" fill="#fff"' + st + "/>";
@@ -677,7 +701,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       : ["translate(0 -18)", "", "translate(0 -18)", ""];
     clearTimeout(WIG.t); WIG.n++;
     var my = WIG.n;
-    if (say && say1) say1.innerHTML = PET_SAY[l];
+    if (say && say1) say1.innerHTML = PET_SAY[Math.min(l, 4)];
     function step() {
       var g = document.getElementById("petg");
       if (!g || !g.setAttribute || my !== WIG.n) return;
@@ -718,11 +742,11 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     var g = gradeStr();
     app.innerHTML = "<h1>Chào " + nm() + "!</h1>" + (g ? '<p class="grade">' + (g === "Mẫu giáo" ? "Bé đang học mẫu giáo" : "Bé đang học " + g.toLowerCase()) + "</p>" : "") +
       petBox(l, 300) +
-      '<div class="stat">' + PET_NAME[l] + " · Hạt thóc: <b>" + P.seeds + "</b> · Sao: <b>" + totalStars() + "/" + (STAGES.length * 3) +
+      '<div class="stat">' + esc(PET_NAME[l]) + " · Hạt thóc: <b>" + P.seeds + "</b> · Sao: <b>" + totalStars() + "/" + (STAGES.length * 3) +
       "</b> · Nhãn: <b>" + stickerCount() + "/" + STICKERS.length + "</b></div>" +
       '<table class="g"><tr><td><button class="btn dark" data-act="map">Bản đồ phiêu lưu</button></td>' +
       '<td><button class="btn dark" data-act="monsters">Đánh quái vật</button></td></tr></table>' +
-      '<table class="g"><tr><td><button class="btn" data-act="pet">Nuôi gà</button></td>' +
+      '<table class="g"><tr><td><button class="btn" data-act="pet">Nuôi ' + esc(petLow()) + '</button></td>' +
       '<td><button class="btn" data-act="album">Album nhãn dán</button></td></tr></table>' +
       '<table class="g"><tr><td><button class="btn" data-act="free">Luyện tập tự do</button></td>' +
       '<td><button class="btn" data-act="photos">Ảnh của bé</button></td></tr></table>' +
@@ -909,7 +933,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     if (stars >= 2 && i + 1 < STAGES.length) h += '<button class="btn dark" data-act="stage" data-v="' + (i + 1) + '">Chặng tiếp theo</button>';
     h += '<table class="g"><tr><td><button class="btn" data-act="stage" data-v="' + i + '">Chơi lại</button></td>' +
       '<td><button class="btn" data-act="map">Bản đồ</button></td></tr></table>';
-    if (P.seeds >= 5) h += '<button class="btn" data-act="pet">Cho gà ăn</button>';
+    if (P.seeds >= 5) h += '<button class="btn" data-act="pet">Cho ' + esc(petLow()) + ' ăn</button>';
     app.innerHTML = h;
   }
   function nameMsg(m) { var i = m.indexOf("!"); return i < 0 ? m + ", " + nm() : m.substr(0, i) + ", " + nm() + m.substr(i); }
@@ -942,7 +966,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     var h = topBar("Sao lưu") + "<h1>Sao lưu của " + nm() + "</h1>" +
       '<p class="sub">Ghi lại mã này. Khi đổi máy hoặc lỡ mất dữ liệu, nhập mã để lấy lại sao, hạt thóc, con gà và nhãn dán.</p>' +
       '<div class="pick"><div class="code">' + makeCode() + '</div><p class="note">Sao: ' + totalStars() + " · Hạt thóc: " + P.seeds +
-      " · Đã cho gà ăn: " + P.fed + " lần</p></div>" +
+      " · Đã cho " + esc(petLow()) + " ăn: " + P.fed + " lần</p></div>" +
       "<h2>Khôi phục từ mã</h2>" +
       '<input id="code" class="inp code-in" type="text" maxlength="20" placeholder="Nhập mã sao lưu" autocomplete="off">';
     if (msg) h += '<p class="fb">' + msg + "</p>";
@@ -986,15 +1010,15 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     app.innerHTML = "<h1>Kết quả</h1><div class=\"score\">" + S.score + "/" + n + "</div><div class=\"stars\">" + starStr(stars) + "</div>" +
       "<h2>" + msg + '</h2><p class="sub">Nhận được <b>' + S.score + " hạt thóc</b>. Đang có " + P.seeds + " hạt.</p>" +
       '<button class="btn dark" data-act="again">Chơi lại</button>' +
-      '<table class="g"><tr><td><button class="btn" data-act="pet">Cho gà ăn</button></td><td><button class="btn" data-act="home">Trang chủ</button></td></tr></table>';
+      '<table class="g"><tr><td><button class="btn" data-act="pet">Cho ' + esc(petLow()) + ' ăn</button></td><td><button class="btn" data-act="home">Trang chủ</button></td></tr></table>';
   }
   function pet(msg) {
     S.mode = "";
     var l = petLevel(), h, need;
-    h = topBar("Hạt thóc: " + P.seeds) + "<h1>" + PET_NAME[l] + '</h1><p class="sub">Gà của bé <b>' + nm() + '</b></p>' + petBox(l, 460);
+    h = topBar("Hạt thóc: " + P.seeds) + "<h1>" + esc(PET_NAME[l]) + '</h1><p class="sub">' + esc(PET_N) + ' của bé <b>' + nm() + '</b></p>' + petBox(l, 460);
     if (msg) h += '<div class="fb">' + msg + "</div>";
-    if (l < PET_LV.length - 1) { need = PET_LV[l + 1] - P.fed; h += '<p class="sub">Cho ăn thêm <b>' + need + " lần</b> nữa để " + (l === 0 ? "trứng nở" : "gà lớn lên") + ".</p>"; }
-    else h += '<p class="sub">Gà đã lớn nhất rồi! Đã cho ăn ' + P.fed + " lần.</p>";
+    if (l < PET_LV.length - 1) { need = PET_LV[l + 1] - P.fed; h += '<p class="sub">Cho ăn thêm <b>' + need + " lần</b> nữa để thành <b>" + esc(PET_NAME[l + 1]) + "</b>.</p>"; }
+    else h += '<p class="sub">' + esc(PET_N) + " đã lớn nhất rồi! Đã cho ăn " + P.fed + " lần.</p>";
     h += P.seeds >= 5 ? '<button class="btn dark" data-act="feed">Cho ăn (5 hạt thóc)</button>' :
       '<button class="btn off">Cần 5 hạt thóc để cho ăn</button><p class="note">Trả lời đúng mỗi câu được 1 hạt thóc.</p>';
     h += '<button class="btn" data-act="map">Đi kiếm thóc trên bản đồ</button>';
@@ -1005,7 +1029,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     var before = petLevel();
     P.seeds -= 5; P.fed++; save();
     var after = petLevel();
-    pet(after > before ? "Wow! " + PET_NAME[before] + " đã thành " + PET_NAME[after] + "!" : pick(["Ngon quá! Cảm ơn bé!", "Chíp chíp, no bụng rồi!", "Ăn ngon lành!"]));
+    pet(after > before ? "Wow! " + esc(PET_NAME[before]) + " đã thành " + esc(PET_NAME[after]) + "!" : pick(["Ngon quá! Cảm ơn bé!", "Chíp chíp, no bụng rồi!", "Ăn ngon lành!"]));
   }
   function album() {
     S.mode = "";
@@ -1145,7 +1169,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
         (first && i + 1 < MON.length ? '<p class="sub"><b>Đã mở quái vật mới: ' + MON[i + 1].n + "!</b></p>" : "") +
         (first && i + 1 === MON.length ? '<p class="sub"><b>Bé đã đánh bại tất cả quái vật! Siêu anh hùng!</b></p>' : "") +
         (i + 1 < MON.length ? '<button class="btn dark" data-act="fight" data-v="' + (i + 1) + '">Đánh quái vật tiếp theo</button>' : "") +
-        '<table class="g"><tr><td><button class="btn" data-act="monsters">Danh sách quái vật</button></td><td><button class="btn" data-act="pet">Cho gà ăn</button></td></tr></table>';
+        '<table class="g"><tr><td><button class="btn" data-act="monsters">Danh sách quái vật</button></td><td><button class="btn" data-act="pet">Cho ' + esc(petLow()) + ' ăn</button></td></tr></table>';
       return;
     }
     if (S.php <= 0) {
@@ -1644,6 +1668,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     if (el && el.id === "code" && (ev.keyCode === 13 || ev.which === 13)) restore();
   };
   window.__lop1 = { getS: function () { return S; }, PH: PH, papi: papi, MON: MON, monSVG: monSVG, makeCode: makeCode, readCode: readCode, getP: function () { return P; },  mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
+  loadPetCfg();
   var last = lsGet("lop1_last");
   if (last && has(players(), last) && (!ONLINE || pins()[last])) doLogin(last, pins()[last]); else nameScreen();
 })();

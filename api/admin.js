@@ -43,6 +43,15 @@ module.exports = async function handler(req, res) {
       const removed = await S.cleanupPhotos("photos/", settings.photoDays);
       return S.send(res, 200, { ok: true, settings, removed });
     }
+    if (body.action === "petGet") return S.send(res, 200, { ok: true, pet: await S.getPet(), def: S.DEFAULT_PET });
+    if (body.action === "petSave") {
+      const pet = await S.setPet(body.pet);
+      return pet ? S.send(res, 200, { ok: true, pet }) : S.send(res, 400, { ok: false, error: "Cấu hình thú nuôi không hợp lệ" });
+    }
+    if (body.action === "petImg") {
+      const id = await S.petImgPut(body.image);
+      return id ? S.send(res, 200, { ok: true, id }) : S.send(res, 400, { ok: false, error: "Ảnh phải là JPG hoặc PNG, tối đa 2MB" });
+    }
     if (body.action === "cleanup") return S.send(res, 200, { ok: true, removed: await S.cleanupPhotos("photos/") });
 
     const path = String(body.path || "");
