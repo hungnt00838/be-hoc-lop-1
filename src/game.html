@@ -84,6 +84,9 @@ table.mons .btn { font-size: 24px; min-height: 150px; padding: 8px 4px; }
 .filebtn input { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; font-size: 200px; cursor: pointer; }
 .btn.ph { padding: 6px; min-height: 0; font-size: 18px; }
 .btn.ph img { display: block; width: 100%; height: auto; }
+img.prev { max-width: 100%; height: auto; border: 3px solid #000; }
+.zoombox { overflow: auto; max-height: 70vh; border: 3px solid #000; margin: 6px 0 10px; -webkit-overflow-scrolling: touch; }
+img.zoomimg { display: block; max-width: none; }
 img.lastph { max-width: 60%; height: auto; border: 3px solid #000; }
 img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
 .inp.note { text-transform: none; font-size: 28px; resize: vertical; }
@@ -1159,6 +1162,28 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       PH.list.splice(PH.cur, 1); photos("Đã xoá ảnh.");
     });
   }
+  // Xem trước ảnh đen trắng trước khi lưu
+  function previewPhoto() {
+    S.mode = "preview";
+    var p = PH.pending;
+    if (!p) { photos(); return; }
+    app.innerHTML = topBar("Kiểm tra ảnh") + "<h2>Ảnh sẽ hiện thế này trên Kindle</h2>" +
+      '<p class="sub">Chữ đã đọc rõ chưa? Bấm "Phóng to" để xem kỹ.</p>' +
+      '<div class="' + (PH.zoom ? "zoombox" : "pic") + '"><img class="' + (PH.zoom ? "zoomimg" : "prev") + '" src="' + p.full + '" alt=""></div>' +
+      '<button class="btn" data-act="zoomph">' + (PH.zoom ? "Thu nhỏ lại" : "Phóng to để kiểm tra chữ") + "</button>" +
+      '<table class="g"><tr><td><button class="btn dark" data-act="savephoto">Lưu ảnh</button></td>' +
+      '<td><label class="btn filebtn">Chụp lại<input id="cam" type="file" accept="image/*" capture="environment"></label></td></tr></table>' +
+      '<button class="btn back" data-act="cancelph">Huỷ, không lưu</button>';
+  }
+  function savePending() {
+    var p = PH.pending;
+    if (!p) { photos(); return; }
+    photos("Đang gửi ảnh lên...");
+    papi({ action: "upload", image: p.full, thumb: p.thumb }, function (err, r) {
+      if (err) { PH.msg = "Chưa gửi được ảnh: " + err.msg; previewPhoto(); return; }
+      PH.pending = null; PH.last = { ts: r.ts, thumb: p.thumb }; PH.list = null; photos("Đã lưu ảnh!");
+    });
+  }
   function undoPhoto(btn) {
     if (!PH.last) return;
     var ts = PH.last.ts;
@@ -1172,7 +1197,26 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     var w = img.width, hh = img.height, s = Math.min(1, max / Math.max(w, hh)), cv = document.createElement("canvas");
     cv.width = Math.max(1, Math.round(w * s)); cv.height = Math.max(1, Math.round(hh * s));
     var cx = cv.getContext("2d"); cx.fillStyle = "#fff"; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+    toGray(cx, cv.width, cv.height);
     return cv.toDataURL("image/jpeg", q);
+  }
+  // Chuyển sang đen trắng giống màn hình Kindle và kéo giãn độ tương phản cho chữ rõ hơn
+  function toGray(cx, w, hh) {
+    var im, d, i, n, y, hist = [], lo = 0, hi = 255, acc = 0, total, sc;
+    try { im = cx.getImageData(0, 0, w, hh); } catch (e) { return; }
+    d = im.data; n = d.length;
+    for (i = 0; i < 256; i++) hist[i] = 0;
+    for (i = 0; i < n; i += 4) { y = Math.round(0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]); d[i] = y; hist[y]++; }
+    total = n / 4;
+    for (i = 0; i < 256; i++) { acc += hist[i]; if (acc > total * 0.01) { lo = i; break; } }
+    acc = 0;
+    for (i = 255; i >= 0; i--) { acc += hist[i]; if (acc > total * 0.01) { hi = i; break; } }
+    sc = hi - lo > 20 ? 255 / (hi - lo) : 1;
+    for (i = 0; i < n; i += 4) {
+      y = sc === 1 ? d[i] : Math.max(0, Math.min(255, Math.round((d[i] - lo) * sc)));
+      d[i] = d[i + 1] = d[i + 2] = y;
+    }
+    cx.putImageData(im, 0, 0);
   }
   function uploadFile(f) {
     if (!f) return;
@@ -1183,12 +1227,8 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       var img = new Image();
       img.onload = function () {
         var full, thumb;
-        try { full = shrink(img, 1280, 0.82); thumb = shrink(img, 260, 0.7); } catch (e) { photos("Không đọc được ảnh này."); return; }
-        photos("Đang gửi ảnh lên...");
-        papi({ action: "upload", image: full, thumb: thumb }, function (err, r) {
-          if (err) { photos("Chưa gửi được ảnh: " + err.msg); return; }
-          PH.last = { ts: r.ts, thumb: thumb }; PH.list = null; photos("Đã lưu ảnh!");
-        });
+        try { full = shrink(img, 1600, 0.85); thumb = shrink(img, 260, 0.7); } catch (e) { photos("Không đọc được ảnh này."); return; }
+        PH.pending = { full: full, thumb: thumb }; PH.zoom = false; previewPhoto();
       };
       img.onerror = function () { photos("Không đọc được ảnh này."); };
       img.src = rd.result;
@@ -1271,6 +1311,9 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "photos") { if (S.mode !== "photo1") { PH.list = null; PH.last = null; } PH.msg = ""; photos(); }
     else if (act === "photo") { viewPhoto(parseInt(v, 10)); }
     else if (act === "undophoto") { undoPhoto(b); scroll = false; }
+    else if (act === "zoomph") { PH.zoom = !PH.zoom; previewPhoto(); scroll = false; }
+    else if (act === "savephoto") savePending();
+    else if (act === "cancelph") { PH.pending = null; photos("Đã huỷ, ảnh không được lưu."); }
     else if (act === "keepphoto") { PH.last = null; PH.msg = ""; photos(); }
     else if (act === "delphoto") { delPhoto(b); scroll = false; }
     else if (act === "fight") fight(parseInt(v, 10));
