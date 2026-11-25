@@ -61,6 +61,10 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
 .inp.pin { text-transform: none; text-align: center; padding: 14px 4px; }
 table.dob .inp { margin: 0; }
 .inp.code-in { text-transform: uppercase; text-align: center; letter-spacing: 2px; }
+.pic { text-align: center; margin: 4px 0 8px; line-height: 1.1; }
+.ic { vertical-align: middle; margin: 2px; }
+.op { font-size: 48px; vertical-align: middle; }
+table.cards .ic { margin: 0; }
 .gift { font-size: 100px; text-align: center; line-height: 1.1; }
 </style>
 </head>
@@ -102,20 +106,99 @@ table.dob .inp { margin: 0; }
   }
   function wrongNum(r) { var w = r + pick([-2, -1, 1, 2]); return w < 0 ? r + 1 : w; }
 
+  // ================= HÌNH VẼ (SVG đen trắng) =================
+  var IST = ' stroke="#000" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"';
+  var FW = "#fff", FG = "#bbb", FD = "#666", FK = "#000", FN = "none";
+  function c(x, y, r, f) { return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + f + '"' + IST + "/>"; }
+  function e(x, y, rx, ry, f) { return '<ellipse cx="' + x + '" cy="' + y + '" rx="' + rx + '" ry="' + ry + '" fill="' + f + '"' + IST + "/>"; }
+  function pa(d, f) { return '<path d="' + d + '" fill="' + f + '"' + IST + "/>"; }
+  function po(pts, f) { return '<polygon points="' + pts + '" fill="' + f + '"' + IST + "/>"; }
+  function re(x, y, w, h, f, r) { return '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + (r || 0) + '" fill="' + f + '"' + IST + "/>"; }
+  function li(a, b, x, y) { return '<line x1="' + a + '" y1="' + b + '" x2="' + x + '" y2="' + y + '"' + IST + "/>"; }
+  var ICON = {
+    "mèo": function () { return po("26,45 30,15 48,32", FW) + po("74,45 70,15 52,32", FW) + c(50, 55, 28, FW) + c(40, 50, 3.5, FK) + c(60, 50, 3.5, FK) +
+      po("46,60 54,60 50,65", FK) + pa("M50 65 L50 70 M42 72 Q50 76 58 72", FN) + li(30, 62, 12, 58) + li(30, 67, 12, 71) + li(70, 62, 88, 58) + li(70, 67, 88, 71); },
+    "chó": function () { return e(24, 50, 10, 20, FD) + e(76, 50, 10, 20, FD) + c(50, 52, 28, FW) + c(40, 46, 3.5, FK) + c(60, 46, 3.5, FK) +
+      e(50, 60, 7, 5, FK) + pa("M50 65 L50 70 M42 72 Q50 78 58 72", FN); },
+    "gà": function () { return li(42, 84, 40, 94) + li(56, 84, 58, 94) + e(46, 62, 28, 22, FW) + c(70, 36, 14, FW) + c(65, 20, 5, FD) + c(74, 19, 5, FD) +
+      po("83,36 94,40 83,44", FG) + c(72, 33, 2.5, FK) + pa("M36 60 Q46 75 58 62", FG) + e(78, 51, 3, 5, FD); },
+    "cá": function () { return po("70,50 92,32 92,68", FG) + pa("M40 30 L50 20 L60 31", FW) + e(45, 50, 30, 20, FW) + c(30, 46, 3.5, FK) + pa("M50 34 Q57 50 50 66", FN); },
+    "bò": function () { return pa("M30 30 Q20 14 30 8", FN) + pa("M70 30 Q80 14 70 8", FN) + e(16, 40, 10, 6, FG) + e(84, 40, 10, 6, FG) + re(26, 22, 48, 58, FW, 22) +
+      c(62, 34, 6, FD) + c(40, 44, 3.5, FK) + c(60, 46, 3.5, FK) + e(50, 70, 18, 11, FG) + c(44, 70, 3, FK) + c(56, 70, 3, FK); },
+    "voi": function () { return e(22, 45, 18, 24, FG) + e(78, 45, 18, 24, FG) + c(50, 45, 24, FW) + pa("M44 60 Q42 86 58 90 Q66 90 63 82 Q54 80 56 60", FW) +
+      c(41, 40, 3.5, FK) + c(59, 40, 3.5, FK); },
+    "thỏ": function () { return e(38, 24, 8, 22, FW) + e(62, 24, 8, 22, FW) + e(38, 26, 3, 13, FG) + e(62, 26, 3, 13, FG) + c(50, 62, 25, FW) +
+      c(41, 57, 3.5, FK) + c(59, 57, 3.5, FK) + po("46,66 54,66 50,70", FK) + pa("M43 75 Q50 79 57 75", FN); },
+    "vịt": function () { return pa("M8 86 Q45 98 88 86", FN) + e(45, 64, 30, 19, FW) + c(68, 36, 14, FW) + e(86, 40, 9, 5, FG) + c(70, 32, 2.5, FK) + pa("M30 60 Q45 75 58 62", FG); },
+    "chim": function () { return li(8, 82, 92, 82) + li(44, 72, 44, 82) + li(52, 72, 52, 82) + po("30,56 10,46 16,66", FW) + e(48, 58, 22, 16, FW) + c(66, 42, 11, FW) +
+      po("76,40 90,44 76,48", FG) + c(68, 39, 2.5, FK) + pa("M38 56 Q48 66 58 58", FG); },
+    "hoa": function () { return li(50, 50, 50, 94) + pa("M50 80 Q30 66 28 82 Q40 90 50 80", FG) + c(50, 20, 12, FW) + c(67, 32, 12, FW) + c(61, 53, 12, FW) +
+      c(39, 53, 12, FW) + c(33, 32, 12, FW) + c(50, 38, 10, FD); },
+    "bút": function () { return po("20,80 30,90 82,38 72,28", FW) + po("20,80 30,90 10,98", FG) + po("72,28 82,38 90,30 80,20", FD); },
+    "vở": function () { return re(22, 12, 58, 78, FW, 4) + li(32, 12, 32, 90) + li(40, 30, 70, 30) + li(40, 44, 70, 44) + li(40, 58, 70, 58) + li(40, 72, 62, 72); },
+    "ghế": function () { return re(30, 10, 40, 40, FW, 6) + li(30, 60, 28, 92) + li(70, 60, 72, 92) + re(24, 48, 52, 12, FG, 3); },
+    "bàn": function () { return li(18, 46, 16, 90) + li(82, 46, 84, 90) + re(8, 34, 84, 12, FG, 3) + re(28, 22, 22, 12, FW, 2) + re(60, 18, 12, 16, FW, 3); },
+    "mũ": function () { return pa("M24 66 Q24 24 50 24 Q76 24 76 66 Z", FW) + e(50, 68, 44, 10, FG) + pa("M26 56 Q50 48 74 56", FN); },
+    "nhà": function () { return re(20, 46, 60, 44, FW) + po("10,50 50,14 90,50", FG) + re(42, 62, 16, 28, FD) + re(25, 56, 12, 12, FW) + re(63, 56, 12, 12, FW); },
+    "trăng": function () { return pa("M60 12 A38 38 0 1 0 88 64 A30 30 0 1 1 60 12 Z", FG) + c(74, 24, 2, FK) + c(84, 40, 2, FK); },
+    "mưa": function () { return li(30, 66, 24, 80) + li(50, 66, 44, 80) + li(70, 66, 64, 80) + li(40, 84, 36, 94) + li(60, 84, 56, 94) +
+      pa("M26 58 Q10 58 12 44 Q14 32 28 34 Q32 16 50 18 Q66 18 70 32 Q88 30 88 46 Q88 58 74 58 Z", FW); },
+    "cam": function () { return c(50, 56, 32, FG) + pa("M50 24 Q54 10 68 12 Q62 24 50 24", FW) + c(40, 48, 2, FD) + c(60, 58, 2, FD) + c(46, 70, 2, FD) + c(62, 40, 2, FD); },
+    "ổi": function () { return c(50, 56, 30, FW) + pa("M50 26 Q58 12 72 15 Q64 28 50 26", FG) + c(40, 52, 3, FG) + c(58, 48, 3, FG) + c(52, 68, 3, FG) + c(64, 62, 3, FG); },
+    "chuối": function () { return pa("M18 28 Q28 84 86 72 Q90 64 82 62 Q40 66 30 24 Z", FW) + li(18, 28, 14, 18) + pa("M30 40 Q40 62 76 66", FN); },
+    "sữa": function () { return po("38,30 44,12 56,12 62,30", FW) + re(32, 30, 36, 60, FW, 6) + re(32, 48, 36, 22, FG); },
+    "cơm": function () { return li(58, 40, 90, 10) + li(66, 42, 96, 16) + pa("M20 54 Q28 32 50 34 Q72 32 80 54", FW) + pa("M12 54 L88 54 Q86 90 50 90 Q14 90 12 54 Z", FW); },
+    "lửa": function () { return pa("M50 92 Q18 88 20 60 Q22 44 36 32 Q36 48 44 50 Q40 28 56 10 Q56 32 70 44 Q82 54 80 66 Q78 90 50 92 Z", FG) +
+      pa("M50 88 Q38 84 40 72 Q42 64 50 56 Q52 66 58 70 Q62 76 60 82 Q56 88 50 88 Z", FW); },
+    "núi": function () { return po("4,90 38,24 72,90", FG) + po("40,90 68,40 96,90", FW) + po("29,42 38,24 47,42 42,38 38,44 34,38", FW); },
+    "kéo": function () { return li(38, 62, 72, 12) + li(62, 62, 28, 12) + c(30, 72, 12, FW) + c(70, 72, 12, FW) + c(50, 38, 3, FK); },
+    "sao": function () { return po("50,8 61,38 93,38 67,57 77,90 50,70 23,90 33,57 7,38 39,38", FG); },
+    "kem": function () { return po("32,50 68,50 50,96", FG) + pa("M38 62 L60 56 M42 76 L56 72", FN) + c(50, 40, 18, FW) + c(50, 20, 12, FW); },
+    "đèn": function () { return li(50, 2, 50, 8) + li(12, 40, 18, 40) + li(82, 40, 88, 40) + li(22, 12, 26, 16) + li(78, 12, 74, 16) + c(50, 40, 26, FW) +
+      re(40, 64, 20, 10, FG, 2) + re(42, 74, 16, 10, FD, 2) + pa("M42 46 Q50 32 58 46", FN); },
+    "cây": function () { return re(44, 60, 12, 32, FD, 2) + c(32, 48, 15, FG) + c(68, 48, 15, FG) + c(50, 34, 22, FG); },
+    "xe": function () { return pa("M8 68 L8 52 Q10 46 20 46 L30 30 Q32 26 40 26 L64 26 Q70 26 74 32 L84 46 Q92 46 92 54 L92 68 Z", FW) +
+      re(36, 32, 14, 12, FG, 2) + re(56, 32, 16, 12, FG, 2) + c(28, 70, 10, FD) + c(72, 70, 10, FD); },
+    "lá": function () { return pa("M14 86 Q14 20 86 14 Q84 84 14 86 Z", FG) + pa("M14 86 Q46 54 80 20 M40 60 L36 44 M54 46 L50 32 M46 54 L62 56", FN); },
+    "bóng": function () { return c(50, 50, 38, FW) + pa("M14 42 Q50 56 86 42 M50 12 Q34 50 50 88", FN) + pa("M26 22 Q40 30 44 14", FG); },
+    "kẹo": function () { return po("28,50 8,34 8,66", FW) + po("72,50 92,34 92,66", FW) + e(50, 50, 24, 17, FG) + pa("M40 36 L46 64 M54 36 L60 64", FN); },
+    "trứng": function () { return e(50, 54, 28, 36, FW) + c(40, 40, 4, FG) + c(60, 60, 5, FG); },
+    "cỏ": function () { return pa("M8 90 L18 46 L26 90 L36 34 L44 90 L54 24 L60 90 L70 40 L76 90 L88 50 L92 90 Z", FG); },
+    "sông": function () { return pa("M4 36 Q27 24 50 36 T96 36 M4 56 Q27 44 50 56 T96 56 M4 76 Q27 64 50 76 T96 76", FN); },
+    "gió": function () { return pa("M8 38 L60 38 Q76 38 76 26 Q76 14 64 14 Q56 14 56 24 M8 56 L76 56 Q90 56 90 70 Q90 82 78 82 Q70 82 70 72 M8 72 L46 72", FN); },
+    "chuột": function () { return c(26, 34, 12, FW) + c(58, 30, 12, FW) + c(42, 50, 24, FW) + c(34, 46, 3, FK) + c(50, 46, 3, FK) + c(42, 58, 4, FK) + pa("M60 66 Q80 80 92 64", FN); }
+  };
+  function ic(w, size, crossed) {
+    var f = ICON[w];
+    if (!f) return "";
+    return '<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 100 100">' + f() +
+      (crossed ? '<line x1="8" y1="8" x2="92" y2="92" stroke="#000" stroke-width="9"/><line x1="92" y1="8" x2="8" y2="92" stroke="#000" stroke-width="9"/>' : "") + "</svg>";
+  }
+  function pic(w, size) { var s = ic(w, size || 120); return s ? '<div class="pic">' + s + "</div>" : ""; }
+  var ICON_WORDS = []; for (var ik in ICON) { if (ICON.hasOwnProperty(ik)) ICON_WORDS.push(ik); }
+  // Đồ vật để đếm: [hình, tên gọi khi đếm]
+  var COUNTABLE = [["cam", "quả cam"], ["cá", "con cá"], ["sao", "ngôi sao"], ["hoa", "bông hoa"], ["gà", "con gà"], ["bóng", "quả bóng"],
+    ["kẹo", "cái kẹo"], ["vịt", "con vịt"], ["trứng", "quả trứng"], ["bút", "cái bút"], ["lá", "chiếc lá"], ["chim", "con chim"]];
+  function iconRow(w, n, size, crossFrom) {
+    var s = "", i;
+    for (i = 0; i < n; i++) { s += ic(w, size, crossFrom !== undefined && i >= crossFrom); if ((i + 1) % 5 === 0 && i + 1 < n) s += (i + 1) % 10 === 0 ? "<br>" : " &nbsp;"; }
+    return s;
+  }
+
   // ================= TOÁN =================
   var STORIES_ADD = [
-    "Lan có {a} quả cam, mẹ cho thêm {b} quả. Hỏi Lan có tất cả mấy quả cam?",
-    "Tổ Một có {a} bạn, tổ Hai có {b} bạn. Hỏi cả hai tổ có mấy bạn?",
-    "Trong ao có {a} con vịt, có thêm {b} con xuống ao. Hỏi trong ao có tất cả mấy con vịt?",
-    "Bé có {a} viên bi, anh cho bé thêm {b} viên. Hỏi bé có tất cả mấy viên bi?",
-    "Vườn nhà Nam có {a} cây cam và {b} cây bưởi. Hỏi vườn có tất cả mấy cây?"
+    ["Lan có {a} quả cam, mẹ cho thêm {b} quả. Hỏi Lan có tất cả mấy quả cam?", "cam"],
+    ["Bé vẽ {a} bông hoa, sau đó vẽ thêm {b} bông. Hỏi bé vẽ tất cả mấy bông hoa?", "hoa"],
+    ["Trong ao có {a} con vịt, có thêm {b} con xuống ao. Hỏi trong ao có tất cả mấy con vịt?", "vịt"],
+    ["Bé có {a} quả bóng, anh cho bé thêm {b} quả. Hỏi bé có tất cả mấy quả bóng?", "bóng"],
+    ["Vườn nhà Nam có {a} cây cam và {b} cây bưởi. Hỏi vườn có tất cả mấy cây?", "cây"]
   ];
   var STORIES_SUB = [
-    "Trên cành có {a} con chim, {b} con bay đi. Hỏi trên cành còn lại mấy con chim?",
-    "Bé có {a} cái kẹo, bé cho em {b} cái. Hỏi bé còn lại mấy cái kẹo?",
-    "Hộp có {a} cái bút, Nam lấy ra {b} cái. Hỏi trong hộp còn mấy cái bút?",
-    "Đàn gà có {a} con, {b} con chạy vào chuồng. Hỏi ngoài sân còn mấy con gà?",
-    "Mẹ mua {a} quả trứng, đã luộc {b} quả. Hỏi còn mấy quả trứng chưa luộc?"
+    ["Trên cành có {a} con chim, {b} con bay đi. Hỏi trên cành còn lại mấy con chim?", "chim"],
+    ["Bé có {a} cái kẹo, bé cho em {b} cái. Hỏi bé còn lại mấy cái kẹo?", "kẹo"],
+    ["Hộp có {a} cái bút, Nam lấy ra {b} cái. Hỏi trong hộp còn mấy cái bút?", "bút"],
+    ["Đàn gà có {a} con, {b} con chạy vào chuồng. Hỏi ngoài sân còn mấy con gà?", "gà"],
+    ["Mẹ mua {a} quả trứng, đã luộc {b} quả. Hỏi còn mấy quả trứng chưa luộc?", "trứng"]
   ];
   function addPair(M) {
     var a, b;
@@ -138,14 +221,16 @@ table.dob .inp { margin: 0; }
   function mathQ(M) {
     var hi = M > 20 ? 99 : M;
     var type = pick(["add", "add", "sub", "sub", "cmp", "count", "next", "miss", "max", "story", "seq"]);
-    var p, a, b, n, s, nums, i, step, start;
+    var p, a, b, n, s, nums, i, step, start, st0, it, vis;
     if (type === "add") {
-      p = addPair(M);
-      return mk('<span class="big">' + p[0] + " + " + p[1] + " = ?</span>", p[0] + p[1], nearNums(p[0] + p[1], 0, hi));
+      p = addPair(M); it = pick(COUNTABLE)[0];
+      vis = M <= 10 && p[0] <= 5 && p[1] <= 5 ? '<div class="pic">' + iconRow(it, p[0], 58) + ' <b class="op">+</b> ' + iconRow(it, p[1], 58) + "</div>" : "";
+      return mk(vis + '<span class="big">' + p[0] + " + " + p[1] + " = ?</span>", p[0] + p[1], nearNums(p[0] + p[1], 0, hi));
     }
     if (type === "sub") {
-      p = subPair(M);
-      return mk('<span class="big">' + p[0] + " − " + p[1] + " = ?</span>", p[0] - p[1], nearNums(p[0] - p[1], 0, hi));
+      p = subPair(M); it = pick(COUNTABLE)[0];
+      vis = M <= 10 && p[0] <= 10 && p[0] > 0 ? '<div class="pic">' + iconRow(it, p[0], 58, p[0] - p[1]) + "</div>" : "";
+      return mk(vis + '<span class="big">' + p[0] + " − " + p[1] + " = ?</span>", p[0] - p[1], nearNums(p[0] - p[1], 0, hi));
     }
     if (type === "cmp") {
       a = rand(0, hi); b = Math.random() < 0.2 ? a : rand(0, hi);
@@ -153,9 +238,8 @@ table.dob .inp { margin: 0; }
         a > b ? "&gt;" : (a < b ? "&lt;" : "="), ["&gt;", "&lt;", "="].sort(), true);
     }
     if (type === "count") {
-      n = rand(1, M <= 10 ? 10 : 20); s = "";
-      for (i = 1; i <= n; i++) { s += "●"; if (i % 5 === 0 && i < n) s += (i % 10 === 0 ? "<br>" : " &nbsp; "); }
-      return mk('Có bao nhiêu chấm tròn?<br><span class="dots">' + s + "</span>", n, nearNums(n, 1, 20));
+      n = rand(1, M <= 10 ? 10 : 20); it = pick(COUNTABLE);
+      return mk("Có bao nhiêu " + it[1] + '?<div class="pic">' + iconRow(it[0], n, n > 10 ? 50 : 64) + "</div>", n, nearNums(n, 1, 20));
     }
     if (type === "next") {
       n = rand(1, hi - 1);
@@ -179,14 +263,14 @@ table.dob .inp { margin: 0; }
       if (Math.random() < 0.5) {
         p = addPair(M);
         if (p[0] === 0 || p[1] === 0) p = [p[0] + 1, p[1] + 1];
-        s = pick(STORIES_ADD).replace("{a}", p[0]).replace("{b}", p[1]); n = p[0] + p[1];
+        st0 = pick(STORIES_ADD); s = st0[0].replace("{a}", p[0]).replace("{b}", p[1]); n = p[0] + p[1];
       } else {
         p = subPair(M);
         if (p[1] === 0) p[1] = 1;
         if (p[1] > p[0]) p[0] = p[1];
-        s = pick(STORIES_SUB).replace("{a}", p[0]).replace("{b}", p[1]); n = p[0] - p[1];
+        st0 = pick(STORIES_SUB); s = st0[0].replace("{a}", p[0]).replace("{b}", p[1]); n = p[0] - p[1];
       }
-      return mk('<div class="story">' + s + "</div>", n, nearNums(n, 0, Math.max(hi, n + 3)));
+      return mk(pic(st0[1], 110) + '<div class="story">' + s + "</div>", n, nearNums(n, 0, Math.max(hi, n + 3)));
     }
     step = M > 20 ? pick([1, 2, 10]) : (M > 10 ? pick([1, 2]) : 1);
     start = rand(0, hi - step * 4);
@@ -295,9 +379,14 @@ table.dob .inp { margin: 0; }
   function big(w) { return '<span class="big">' + w + "</span>"; }
   function pickA(cond) { var a; do { a = pick(AW); } while (!cond(a)); return a; }
   function tvQ(lv) {
-    var type = pick(lv === 1 ? ["ghep", "ghep", "dau", "dau", "am", "cau", "cau"] :
-      ["ghep", "dau", "am", "van", "van", "chinhta", "chinhta", "cau"]);
-    var a, wr, s, t2;
+    var type = pick(lv === 1 ? ["hinh", "hinh", "ghep", "ghep", "dau", "dau", "am", "cau", "cau"] :
+      ["hinh", "ghep", "dau", "am", "van", "van", "chinhta", "chinhta", "cau"]);
+    var a, wr, s, t2, w;
+    if (type === "hinh") {
+      w = pick(ICON_WORDS); wr = [];
+      while (wr.length < 3) { s = pick(ICON_WORDS); if (s !== w && !has(wr, s)) wr.push(s); }
+      return mk(pic(w, 170) + "Hình này là gì?", w, wr);
+    }
     if (type === "cau") {
       s = pick(SENT);
       return mk("Chọn từ điền vào chỗ trống:<br><b>" + s[0].replace("___", '<span class="box">&nbsp;?&nbsp;</span>') + "</b>", s[1], s[2]);
@@ -306,24 +395,30 @@ table.dob .inp { margin: 0; }
       a = pickA(function (x) { return SWAP[x.on]; });
       return mk("Từ nào viết <b>đúng</b> chính tả?", a.w, [SWAP[a.on] + a.w.substr(a.on.length)]);
     }
-    a = pickA(function (x) { return x.pos >= 0 && (type !== "am" || x.on); });
+    a = pickA(function (x) { return x.pos >= 0 && (type !== "am" || x.on) && (Math.random() < 0.7 ? !!ICON[x.w] : true); });
+    var pc = pic(a.w, 110);
     if (type === "ghep") {
       wr = [];
       for (t2 = 0; t2 < 6; t2++) { if (t2 !== a.tone) wr.push(withTone(a, t2)); }
       s = (a.on ? a.on + " + " : "") + a.rime + " + " + TONE[a.tone];
-      return mk("Ghép thành tiếng:<br><b>" + s + "</b>", a.w, shuffle(wr));
+      return mk(pc + "Ghép thành tiếng:<br><b>" + s + "</b>", a.w, shuffle(wr));
     }
     if (type === "dau") {
       wr = [];
       for (t2 = 0; t2 < 6; t2++) { if (t2 !== a.tone) wr.push(TONE[t2]); }
-      return mk("Tiếng " + big(a.w) + "<br>có dấu gì?", TONE[a.tone], shuffle(wr));
+      return mk(pc + "Tiếng " + big(a.w) + "<br>có dấu gì?", TONE[a.tone], shuffle(wr));
     }
-    if (type === "am") return mk("Tiếng " + big(a.w) + "<br>có âm đầu là gì?", a.on, otherVals("on", a.on));
-    return mk("Tiếng " + big(a.w) + "<br>có vần gì?", a.rime, otherVals("rime", a.rime));
+    if (type === "am") return mk(pc + "Tiếng " + big(a.w) + "<br>có âm đầu là gì?", a.on, otherVals("on", a.on));
+    return mk(pc + "Tiếng " + big(a.w) + "<br>có vần gì?", a.rime, otherVals("rime", a.rime));
   }
   function tvDS() {
-    var type = pick(["chinhta", "chinhta", "van", "dau", "am"]), truth = Math.random() < 0.5, a, v;
+    var type = pick(["hinh", "hinh", "chinhta", "chinhta", "van", "dau", "am"]), truth = Math.random() < 0.5, a, v, w;
     var pre = "Đúng hay sai?<br>";
+    if (type === "hinh") {
+      w = pick(ICON_WORDS); v = w;
+      if (!truth) { while (v === w) v = pick(ICON_WORDS); }
+      return yesNo(pic(w, 150) + "Đúng hay sai?<br>Hình này là " + big(v) + ".", truth);
+    }
     if (type === "chinhta") {
       a = pickA(function (x) { return SWAP[x.on]; });
       return yesNo(pre + "Từ " + big(truth ? a.w : SWAP[a.on] + a.w.substr(a.on.length)) + "<br>viết đúng chính tả.", truth);
@@ -343,11 +438,11 @@ table.dob .inp { margin: 0; }
     var c = pick(CLUES), a = analyze(c[0]), base, wr = [], t2, rest;
     if (a.on && Math.random() < 0.4) {
       rest = c[0].substr(a.on.length).split("");
-      return mk("Ô chữ: <b>" + c[1] + "</b><br>" + cells(["?"].concat(rest), 0) + "<br>Ô trống là chữ gì?", a.on, otherVals("on", a.on));
+      return mk(pic(c[0], 110) + "Ô chữ: <b>" + c[1] + "</b><br>" + cells(["?"].concat(rest), 0) + "<br>Ô trống là chữ gì?", a.on, otherVals("on", a.on));
     }
     base = a.plain.charAt(a.pos);
     for (t2 = 0; t2 < 6; t2++) { if (t2 !== a.tone) wr.push(V[base].charAt(t2)); }
-    return mk("Ô chữ: <b>" + c[1] + "</b><br>" + cells(c[0].split(""), a.pos) + "<br>Ô trống là chữ gì?", c[0].charAt(a.pos), shuffle(wr));
+    return mk(pic(c[0], 110) + "Ô chữ: <b>" + c[1] + "</b><br>" + cells(c[0].split(""), a.pos) + "<br>Ô trống là chữ gì?", c[0].charAt(a.pos), shuffle(wr));
   }
   function xepQ() {
     var c = pick(CLUES), tiles = c[0].split(""), n = 0;
@@ -362,6 +457,7 @@ table.dob .inp { margin: 0; }
     while (out.length < 6 && tries < 500) {
       tries++;
       if (g === "hoa") { l = pick(UP); r = l.toLowerCase(); }
+      else if (g === "hinh") { r = pick(ICON_WORDS); l = ic(r, 70); }
       else if (g === "van") { a = pickA(function (x) { return x.on && x.rime.length > 1; }); l = a.w; r = a.rime; }
       else {
         M = g === "m10" ? 10 : (g === "m20" ? 20 : 100);
@@ -381,11 +477,12 @@ table.dob .inp { margin: 0; }
   var TYPE_NAME = { quiz: "Chọn đáp án", ds: "Đúng hay Sai", xep: "Xếp chữ", ochu: "Ô chữ", the: "Lật thẻ" };
   var ZONES = [
     { n: "Đồi Số Đếm", s: [["quiz", "m10"], ["ds", "m10"], ["quiz", "m10"], ["the", "m10"]] },
-    { n: "Làng Chữ Cái", s: [["quiz", "tv1"], ["ds", "tv"], ["xep", "tv"], ["the", "hoa"]] },
+    { n: "Làng Chữ Cái", s: [["quiz", "tv1"], ["ds", "tv"], ["xep", "tv"], ["the", "hinh"]] },
     { n: "Rừng Phép Tính", s: [["quiz", "m20"], ["ds", "m20"], ["quiz", "m20"], ["the", "m20"]] },
     { n: "Sông Vần Điệu", s: [["quiz", "tv2"], ["ochu", "tv"], ["xep", "tv"], ["the", "van"]] },
-    { n: "Núi Số Lớn", s: [["quiz", "m100"], ["ds", "mix"], ["ochu", "tv"], ["the", "m100"]] }
+    { n: "Núi Số Lớn", s: [["quiz", "m100"], ["ds", "mix"], ["ochu", "tv"], ["the", "hoa"]] }
   ];
+  var ZONE_IC = ["sao", "nhà", "cây", "cá", "núi"];
   var STAGES = [];
   for (k = 0; k < ZONES.length; k++) { for (t = 0; t < 4; t++) STAGES.push({ z: k, t: ZONES[k].s[t][0], g: ZONES[k].s[t][1] }); }
   var STICKERS = [["☀", "Mặt trời"], ["☁", "Đám mây"], ["☂", "Cái ô"], ["☃", "Người tuyết"], ["✿", "Bông hoa"],
@@ -591,7 +688,7 @@ table.dob .inp { margin: 0; }
     var h = topBar("Sao: " + totalStars() + "/" + (STAGES.length * 3) + " · Hạt thóc: " + P.seeds), z, j, i, st, cls;
     h += '<p class="sub">Đúng từ 4 câu trở lên để mở chặng tiếp theo.</p>';
     for (z = 0; z < ZONES.length; z++) {
-      h += '<div class="pick"><h2>' + (z + 1) + ". " + ZONES[z].n + '</h2><table class="g map"><tr>';
+      h += '<div class="pick"><h2>' + ic(ZONE_IC[z], 56) + " " + (z + 1) + ". " + ZONES[z].n + '</h2><table class="g map"><tr>';
       for (j = 0; j < 4; j++) {
         i = z * 4 + j; st = STAGES[i];
         if (!unlocked(i)) { h += '<td><button class="btn off">' + (i + 1) + '<span class="s">khoá</span></button></td>'; continue; }
@@ -658,7 +755,7 @@ table.dob .inp { margin: 0; }
     var q = S.qs[S.i], built = "", i, h, done = q.built.length === q.tiles.length, slots = [];
     for (i = 0; i < q.built.length; i++) built += q.tiles[q.built[i]];
     for (i = 0; i < q.word.length; i++) slots.push(i < q.built.length ? q.tiles[q.built[i]] : "&nbsp;");
-    h = topBar(headLeft(), "map") + '<div class="q">Xếp chữ: <b>' + q.clue + "</b><br>";
+    h = topBar(headLeft(), "map") + '<div class="q">' + pic(q.word, 110) + 'Xếp chữ: <b>' + q.clue + "</b><br>";
     for (i = 0; i < slots.length; i++) h += '<span class="cell">' + slots[i] + "</span>";
     h += "</div>";
     if (!done) {
@@ -677,7 +774,7 @@ table.dob .inp { margin: 0; }
   function showCards() {
     var h = topBar("Chặng " + (S.stage + 1) + " · Lật thẻ · Số lượt: " + S.moves, "map"), i, c, cls, left = 0;
     var g = STAGES[S.stage].g;
-    h += '<p class="sub">' + (g === "hoa" ? "Tìm cặp chữ in hoa và chữ thường." : (g === "van" ? "Tìm cặp tiếng và vần của nó." : "Tìm cặp phép tính và kết quả.")) + "</p>";
+    h += '<p class="sub">' + (g === "hinh" ? "Tìm cặp hình và chữ." : g === "hoa" ? "Tìm cặp chữ in hoa và chữ thường." : (g === "van" ? "Tìm cặp tiếng và vần của nó." : "Tìm cặp phép tính và kết quả.")) + "</p>";
     h += '<table class="g cards"><tr>';
     for (i = 0; i < S.cards.length; i++) {
       c = S.cards[i];
