@@ -65,6 +65,11 @@ table.dob .inp { margin: 0; }
 .ic { vertical-align: middle; margin: 2px; }
 .op { font-size: 48px; vertical-align: middle; }
 table.cards .ic { margin: 0; }
+.arena { text-align: center; border: 4px solid #000; border-radius: 14px; padding: 8px; margin-bottom: 8px; }
+.mname { font-size: 28px; font-weight: bold; }
+.hp { font-size: 30px; letter-spacing: 2px; }
+.hearts { font-size: 30px; letter-spacing: 3px; }
+table.mons .btn { font-size: 24px; min-height: 150px; padding: 8px 4px; }
 .gift { font-size: 100px; text-align: center; line-height: 1.1; }
 </style>
 </head>
@@ -505,7 +510,7 @@ table.cards .ic { margin: 0; }
 
   // ================= LƯU TIẾN TRÌNH =================
   var NAME = "", P, MEM = {};
-  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {} }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
+  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {}, mon: [] }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
   function lsGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function lsSet(key, v) { try { window.localStorage.setItem(key, v); } catch (e) {} }
   function players() { var r = lsGet("lop1_players"); try { if (r) return JSON.parse(r); } catch (e) {} return MEM.players || []; }
@@ -520,6 +525,7 @@ table.cards .ic { margin: 0; }
     if (!o && !list.length) { try { raw = lsGet("lop1_save_v2"); if (raw) o = JSON.parse(raw); } catch (e) {} }
     P = (o && o.st) ? o : freshP();
     while (P.st.length < STAGES.length) P.st.push(0);
+    if (!P.mon) P.mon = [];
     NAME = n;
     if (!has(list, n)) { list.push(n); MEM.players = list; lsSet("lop1_players", JSON.stringify(list)); }
     lsSet("lop1_last", n);
@@ -633,7 +639,8 @@ table.cards .ic { margin: 0; }
       '<div class="pet">' + petSVG(l, 170) + "</div>" +
       '<div class="stat">' + PET_NAME[l] + " · Hạt thóc: <b>" + P.seeds + "</b> · Sao: <b>" + totalStars() + "/" + (STAGES.length * 3) +
       "</b> · Nhãn: <b>" + stickerCount() + "/" + STICKERS.length + "</b></div>" +
-      '<button class="btn dark" data-act="map">Bản đồ phiêu lưu</button>' +
+      '<table class="g"><tr><td><button class="btn dark" data-act="map">Bản đồ phiêu lưu</button></td>' +
+      '<td><button class="btn dark" data-act="monsters">Đánh quái vật</button></td></tr></table>' +
       '<table class="g"><tr><td><button class="btn" data-act="pet">Nuôi gà</button></td>' +
       '<td><button class="btn" data-act="album">Album nhãn dán</button></td></tr></table>' +
       '<button class="btn" data-act="free">Luyện tập tự do</button>' +
@@ -935,6 +942,123 @@ table.cards .ic { margin: 0; }
     else freeResult();
   }
 
+  // ================= ĐÁNH QUÁI VẬT =================
+  var MON = [
+    { n: "Thạch Nhầy", hp: 5, pool: [["quiz", "m10"]], d: function () {
+      return pa("M14 86 Q8 50 30 36 Q40 14 56 20 Q78 24 84 48 Q96 70 86 86 Z", FG) + c(38, 52, 8, FW) + c(62, 52, 8, FW) + c(40, 54, 4, FK) + c(60, 54, 4, FK) +
+        pa("M38 70 Q50 80 62 70", FN) + c(70, 30, 4, FW); } },
+    { n: "Nấm Độc", hp: 6, pool: [["quiz", "tv1"], ["ds", "tv"]], d: function () {
+      return re(34, 50, 32, 40, FW, 10) + pa("M8 54 Q8 12 50 12 Q92 12 92 54 Z", FG) + c(30, 32, 6, FW) + c(56, 24, 7, FW) + c(74, 40, 5, FW) +
+        li(38, 60, 46, 64) + li(62, 60, 54, 64) + c(43, 68, 3, FK) + c(57, 68, 3, FK) + pa("M42 80 L46 76 L50 80 L54 76 L58 80", FN); } },
+    { n: "Dơi Bóng Đêm", hp: 6, pool: [["quiz", "m10"], ["ds", "m10"]], d: function () {
+      return po("40,48 4,30 12,46 4,62 22,58 30,72", FD) + po("60,48 96,30 88,46 96,62 78,58 70,72", FD) + po("36,34 40,18 46,32", FD) + po("64,34 60,18 54,32", FD) +
+        c(50, 50, 18, FD) + c(43, 46, 4, FW) + c(57, 46, 4, FW) + po("44,58 47,66 50,58", FW) + po("50,58 53,66 56,58", FW); } },
+    { n: "Ma Mây", hp: 7, pool: [["quiz", "tv2"], ["ds", "tv"]], d: function () {
+      return pa("M20 90 L20 44 Q20 12 50 12 Q80 12 80 44 L80 90 L70 80 L60 90 L50 80 L40 90 L30 80 Z", FW) + e(40, 42, 6, 9, FK) + e(60, 42, 6, 9, FK) +
+        e(50, 64, 7, 9, FD) + pa("M12 54 Q4 46 10 38 M88 54 Q96 46 90 38", FN); } },
+    { n: "Rồng Lửa Nhỏ", hp: 8, pool: [["quiz", "m20"], ["ds", "m20"]], d: function () {
+      return pa("M20 74 Q4 80 6 94 Q16 84 30 84", FG) + po("40,48 22,18 56,40", FD) + e(46, 70, 26, 18, FG) + pa("M60 56 Q62 34 74 30", FN) + c(76, 30, 14, FG) +
+        po("70,18 68,6 76,16", FW) + po("80,18 84,6 86,18", FW) + c(80, 27, 3, FK) + pa("M88 34 Q100 34 98 42 Q94 38 88 40", FD) + li(36, 86, 34, 96) + li(56, 86, 58, 96); } },
+    { n: "Khủng Long Đá", hp: 8, pool: [["quiz", "tv2"], ["quiz", "m20"]], d: function () {
+      return po("26,40 32,26 38,40 44,24 50,40 56,26 60,40", FD) + pa("M8 80 Q20 70 24 50 Q30 36 56 38 Q70 40 74 56 L74 80 Z", FG) + re(60, 22, 34, 30, FG, 10) +
+        c(82, 32, 3.5, FK) + po("64,46 68,52 72,46 76,52 80,46 84,52 88,46", FW) + li(28, 80, 26, 94) + li(62, 80, 64, 94) + c(40, 60, 4, FD) + c(52, 66, 3, FD); } },
+    { n: "Quái Một Mắt", hp: 9, pool: [["quiz", "m100"], ["ds", "mix"]], d: function () {
+      return po("30,30 22,8 40,24", FD) + po("70,30 78,8 60,24", FD) + li(16, 56, 4, 44) + li(84, 56, 96, 44) + c(50, 54, 34, FG) + c(50, 46, 15, FW) + c(50, 46, 7, FK) +
+        c(53, 43, 2, FW) + pa("M34 72 Q50 64 66 72 L62 78 L56 72 L50 78 L44 72 L38 78 Z", FW) + li(38, 88, 36, 98) + li(62, 88, 64, 98); } },
+    { n: "Vua Quái Vật", hp: 10, pool: [["quiz", "m100"], ["quiz", "tv2"], ["ds", "mix"]], d: function () {
+      return po("14,40 4,10 28,30", FD) + po("86,40 96,10 72,30", FD) + po("30,24 34,4 44,16 50,2 56,16 66,4 70,24", FW) + re(16, 22, 68, 70, FG, 26) +
+        li(28, 40, 44, 46) + li(72, 40, 56, 46) + c(38, 52, 6, FW) + c(62, 52, 6, FW) + c(39, 53, 3, FK) + c(61, 53, 3, FK) +
+        pa("M28 70 L72 70 L66 84 L34 84 Z", FD) + po("34,70 38,78 42,70", FW) + po("58,70 62,78 66,70", FW); } }
+  ];
+  function monSVG(i, size, state) {
+    var s = '<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 100 100">' + MON[i].d();
+    if (state === "hit") s += po("70,4 76,16 90,10 84,22 98,28 84,32 90,44 76,38 70,50 66,38 52,42 60,30 48,22 62,20 58,8", FW) +
+      '<text x="73" y="31" font-size="11" font-weight="bold" text-anchor="middle" font-family="VNSans, sans-serif">BỤP</text>';
+    if (state === "ko") s += '<line x1="20" y1="20" x2="80" y2="80" stroke="#000" stroke-width="7"/><line x1="80" y1="20" x2="20" y2="80" stroke="#000" stroke-width="7"/>';
+    return s + "</svg>";
+  }
+  function monBeaten(i) { return P.mon && P.mon[i] ? true : false; }
+  function monUnlocked(i) { return i === 0 || monBeaten(i - 1); }
+  function hpBar(n, max) { var s = "", i; for (i = 0; i < max; i++) s += i < n ? "■" : "□"; return s; }
+  function hearts(n) { var s = "", i; for (i = 0; i < 3; i++) s += i < n ? "♥" : "♡"; return s; }
+
+  function monsters() {
+    S.mode = "";
+    var h = topBar("Đánh quái vật") + "<h1>Đánh quái vật</h1>" +
+      '<p class="sub">Trả lời đúng để tấn công. Trả lời sai thì quái vật đánh lại, mất 1 trái tim. Thắng quái vật này để mở quái vật tiếp theo.</p><table class="g mons"><tr>', i;
+    for (i = 0; i < MON.length; i++) {
+      if (i > 0 && i % 2 === 0) h += "</tr><tr>";
+      if (!monUnlocked(i)) h += '<td><button class="btn off">' + (i + 1) + ". ???<span class=\"s\">khoá</span></button></td>";
+      else h += '<td><button class="btn" data-act="fight" data-v="' + i + '">' + monSVG(i, 90, monBeaten(i) ? "ko" : "") +
+        "<br>" + (i + 1) + ". " + MON[i].n + '<span class="s">Máu: ' + MON[i].hp + (monBeaten(i) ? " · ★ Đã thắng" : "") + "</span></button></td>";
+    }
+    app.innerHTML = h + "</tr></table>";
+  }
+  function battleQ() {
+    var m = MON[S.mon], q, n = 0, pp;
+    do { pp = pick(m.pool); q = genQ(pp[0], pp[1]); n++; } while ((q.kind !== "mc" || q.text === S.lastQ) && n < 30);
+    S.lastQ = q.text; S.q = q; S.chosen = -1;
+  }
+  function fight(i) {
+    S.mode = "battle"; S.mon = i; S.mhp = MON[i].hp; S.php = 3; S.streak = 0; S.state = ""; S.fb = ""; S.got = 0;
+    battleQ(); showBattle();
+  }
+  function showBattle() {
+    var m = MON[S.mon], q = S.q, done = S.chosen >= 0, h, i, cls, cols = q.opts.length === 3 ? 3 : 2;
+    h = '<div class="top"><span class="l"><b>' + nm() + '</b> · <span class="hearts">' + hearts(S.php) + '</span></span><span class="r"><button class="btn small" data-act="monsters">Bỏ chạy</button></span></div>';
+    h += '<div class="arena">' + monSVG(S.mon, 150, S.state) + '<div class="mname">' + m.n + '</div><div class="hp">' + hpBar(S.mhp, m.hp) + "</div></div>";
+    h += '<div class="q">' + q.text + '</div><table class="g opts"><tr>';
+    for (i = 0; i < q.opts.length; i++) {
+      if (i > 0 && i % cols === 0) h += "</tr><tr>";
+      cls = "btn";
+      if (done && i === q.ans) cls += " right"; else if (done && i === S.chosen) cls += " wrong";
+      h += '<td><button class="' + cls + '" data-act="opt" data-v="' + i + '">' + q.opts[i] + "</button></td>";
+    }
+    h += "</tr></table>";
+    if (done) h += '<div class="fb">' + S.fb + '</div><button class="btn dark" data-act="bnext">' + (S.mhp <= 0 ? "Xem chiến thắng" : (S.php <= 0 ? "Xem kết quả" : "Đánh tiếp")) + "</button>";
+    app.innerHTML = h;
+  }
+  function battleAnswer(v) {
+    if (S.chosen >= 0) return;
+    S.chosen = v;
+    if (v === S.q.ans) {
+      S.streak++;
+      var dmg = S.streak >= 3 ? 2 : 1;
+      S.mhp = Math.max(0, S.mhp - dmg); S.state = "hit"; S.got++; P.seeds++;
+      S.fb = (dmg === 2 ? "Đòn siêu mạnh! " : "Trúng rồi! ") + m_name() + " mất " + dmg + " máu.";
+    } else {
+      S.streak = 0; S.php--; S.state = "";
+      S.fb = m_name() + " đánh trả! " + nm() + " mất 1 trái tim. Đáp án đúng: " + S.q.opts[S.q.ans];
+    }
+    showBattle();
+  }
+  function m_name() { return MON[S.mon].n; }
+  function battleNext() {
+    var i = S.mon, first, bonus;
+    if (S.mhp <= 0) {
+      first = !monBeaten(i); bonus = MON[i].hp;
+      if (!P.mon) P.mon = [];
+      P.mon[i] = 1; P.seeds += bonus; save();
+      app.innerHTML = "<h1>Chiến thắng!</h1>" + '<div class="pic">' + monSVG(i, 170, "ko") + "</div>" +
+        "<h2>" + nm() + " đã đánh bại " + MON[i].n + "!</h2>" +
+        '<p class="sub">Trả lời đúng ' + S.got + " câu. Thưởng thêm <b>" + bonus + " hạt thóc</b>. Đang có " + P.seeds + " hạt.</p>" +
+        (first && i + 1 < MON.length ? '<p class="sub"><b>Đã mở quái vật mới: ' + MON[i + 1].n + "!</b></p>" : "") +
+        (first && i + 1 === MON.length ? '<p class="sub"><b>Bé đã đánh bại tất cả quái vật! Siêu anh hùng!</b></p>' : "") +
+        (i + 1 < MON.length ? '<button class="btn dark" data-act="fight" data-v="' + (i + 1) + '">Đánh quái vật tiếp theo</button>' : "") +
+        '<table class="g"><tr><td><button class="btn" data-act="monsters">Danh sách quái vật</button></td><td><button class="btn" data-act="pet">Cho gà ăn</button></td></tr></table>';
+      return;
+    }
+    if (S.php <= 0) {
+      save();
+      app.innerHTML = "<h1>Hết trái tim rồi!</h1>" + '<div class="pic">' + monSVG(i, 170, "") + "</div>" +
+        "<h2>" + MON[i].n + " còn " + S.mhp + " máu. Mình luyện thêm rồi đánh lại nhé, " + nm() + "!</h2>" +
+        '<p class="sub">Trả lời đúng ' + S.got + " câu, được " + S.got + " hạt thóc.</p>" +
+        '<button class="btn dark" data-act="fight" data-v="' + i + '">Đánh lại</button><button class="btn" data-act="monsters">Danh sách quái vật</button>';
+      return;
+    }
+    S.state = ""; battleQ(); showBattle();
+  }
+
   // ================= XỬ LÝ CHẠM =================
   function findBtn(el) {
     while (el && el !== app) { if (el.tagName === "BUTTON") return el; el = el.parentNode; }
@@ -955,6 +1079,9 @@ table.cards .ic { margin: 0; }
     }
     else if (act === "setname") setName();
     else if (act === "backup") backup();
+    else if (act === "monsters") monsters();
+    else if (act === "fight") fight(parseInt(v, 10));
+    else if (act === "bnext") battleNext();
     else if (act === "restore") restore();
     else if (act === "restore2") restore2();
     else if (act === "map") map();
@@ -967,7 +1094,8 @@ table.cards .ic { margin: 0; }
     else if (act === "stage") startStage(parseInt(v, 10));
     else if (act === "opt") {
       if (S.chosen >= 0) return;
-      S.chosen = parseInt(v, 10); answered(S.chosen === S.qs[S.i].ans); showQ(); scroll = false;
+      if (S.mode === "battle") { battleAnswer(parseInt(v, 10)); scroll = false; }
+      else { S.chosen = parseInt(v, 10); answered(S.chosen === S.qs[S.i].ans); showQ(); scroll = false; }
     } else if (act === "tile") {
       q = S.qs[S.i]; q.built.push(parseInt(v, 10));
       if (q.built.length === q.tiles.length) {
@@ -989,7 +1117,7 @@ table.cards .ic { margin: 0; }
     if (el && (el.id === "nm" || el.id === "dd" || el.id === "mm" || el.id === "yy") && (ev.keyCode === 13 || ev.which === 13)) setName();
     if (el && el.id === "code" && (ev.keyCode === 13 || ev.which === 13)) restore();
   };
-  window.__lop1 = { makeCode: makeCode, readCode: readCode, getP: function () { return P; },  mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
+  window.__lop1 = { getS: function () { return S; }, MON: MON, monSVG: monSVG, makeCode: makeCode, readCode: readCode, getP: function () { return P; },  mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
   var last = lsGet("lop1_last");
   if (last && has(players(), last) && (!ONLINE || pins()[last])) doLogin(last, pins()[last]); else nameScreen();
 })();

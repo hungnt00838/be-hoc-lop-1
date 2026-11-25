@@ -58,7 +58,7 @@ tr.sel td { background: #fff7d6; }
     </div>
     <p class="muted" id="count"></p>
     <div style="overflow-x:auto"><table>
-      <thead><tr><th>Tên bé</th><th class="n">Sao</th><th class="n">Hạt thóc</th><th class="n hide-sm">Cho ăn</th><th class="n hide-sm">Nhãn</th><th class="hide-sm">Cập nhật</th><th></th></tr></thead>
+      <thead><tr><th>Tên bé</th><th class="n">Sao</th><th class="n">Hạt thóc</th><th class="n hide-sm">Cho ăn</th><th class="n hide-sm">Nhãn</th><th class="n hide-sm">Quái</th><th class="hide-sm">Cập nhật</th><th></th></tr></thead>
       <tbody id="rows"></tbody>
     </table></div>
   </section>
@@ -75,6 +75,8 @@ tr.sel td { background: #fff7d6; }
     <h3>Sao từng chặng</h3>
     <div class="row"><button id="unlockAll">Mở khoá tất cả chặng</button><button id="threeAll">3 sao tất cả</button><button id="resetAll">Xoá hết sao</button></div>
     <div class="zones" id="zones"></div>
+    <h3>Quái vật đã thắng</h3>
+    <div class="stk" id="mon"></div>
     <h3>Nhãn dán</h3>
     <div class="stk" id="stk"></div>
     <div class="row" style="margin-top:18px">
@@ -93,6 +95,7 @@ tr.sel td { background: #fff7d6; }
     ["Chọn đáp án", "Đúng hay Sai", "Chọn đáp án", "Lật thẻ"], ["Chọn đáp án", "Ô chữ", "Xếp chữ", "Lật thẻ"], ["Chọn đáp án", "Đúng hay Sai", "Ô chữ", "Lật thẻ"]];
   const STICKERS = ["☀ Mặt trời", "☁ Đám mây", "☂ Cái ô", "☃ Người tuyết", "✿ Bông hoa", "☘ Cỏ ba lá", "♥ Trái tim", "♪ Nốt nhạc", "☺ Mặt cười", "⚓ Mỏ neo",
     "✈ Máy bay", "❀ Hoa mai", "☎ Điện thoại", "✂ Cái kéo", "✏ Bút chì", "☕ Tách trà", "♞ Chú ngựa", "☾ Mặt trăng", "❄ Bông tuyết", "♔ Vương miện"];
+  const MONS = ["Thạch Nhầy", "Nấm Độc", "Dơi Bóng Đêm", "Ma Mây", "Rồng Lửa Nhỏ", "Khủng Long Đá", "Quái Một Mắt", "Vua Quái Vật"];
   const PET_LV = [0, 2, 6, 12, 20], PET_NAME = ["Quả trứng", "Gà con", "Gà lớn", "Gà trống", "Gà trống vua"];
   const $ = id => document.getElementById(id);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -128,8 +131,8 @@ tr.sel td { background: #fff7d6; }
     $("count").textContent = players.length + " bé" + (q ? " · đang hiện " + list.length : "");
     $("rows").innerHTML = list.length ? list.map(p => '<tr class="' + (cur && cur.path === p.path ? "sel" : "") + '"><td><b>' + esc(p.name) + "</b></td>" +
       '<td class="n">' + p.stars + '/60</td><td class="n">' + p.seeds + '</td><td class="n hide-sm">' + p.fed + '</td><td class="n hide-sm">' + p.stickers +
-      '/20</td><td class="hide-sm">' + fmt(p.updated) + '</td><td><button data-path="' + esc(p.path) + '">Sửa</button></td></tr>').join("")
-      : '<tr><td colspan="7" class="muted">Chưa có bé nào' + (q ? " khớp với tìm kiếm" : "") + ".</td></tr>";
+      '/20</td><td class="n hide-sm">' + p.mons + '/8</td><td class="hide-sm">' + fmt(p.updated) + '</td><td><button data-path="' + esc(p.path) + '">Sửa</button></td></tr>').join("")
+      : '<tr><td colspan="8" class="muted">Chưa có bé nào' + (q ? " khớp với tìm kiếm" : "") + ".</td></tr>";
   }
   function petLabel() { const f = +$("fFed").value || 0; let l = 0; PET_LV.forEach((v, i) => { if (f >= v) l = i; }); $("petLv").textContent = PET_NAME[l]; }
   function openEdit(p) {
@@ -148,6 +151,7 @@ tr.sel td { background: #fff7d6; }
     });
     $("zones").innerHTML = z;
     $("stk").innerHTML = STICKERS.map((s, i) => '<label><input type="checkbox" data-stk="' + i + '"' + (p.data.stk[i] ? " checked" : "") + "> " + esc(s) + "</label>").join("");
+    $("mon").innerHTML = MONS.map((s, i) => '<label><input type="checkbox" data-mon="' + i + '"' + (p.data.mon && p.data.mon[i] ? " checked" : "") + "> " + (i + 1) + ". " + esc(s) + "</label>").join("");
     $("del").classList.remove("arm"); $("del").textContent = "Xoá bé này";
     msg("editMsg", ""); show("edit", true); render();
     $("edit").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -157,7 +161,8 @@ tr.sel td { background: #fff7d6; }
     const st = [], stk = {};
     document.querySelectorAll("[data-st]").forEach(s => { st[+s.dataset.st] = +s.value; });
     document.querySelectorAll("[data-stk]").forEach(c => { if (c.checked) stk[+c.dataset.stk] = 1; });
-    return { st, stk, seeds: Math.max(0, +$("fSeeds").value || 0), fed: Math.max(0, +$("fFed").value || 0) };
+    const mon = MONS.map((_, i) => { const cb = document.querySelector('[data-mon="' + i + '"]'); return cb && cb.checked ? 1 : 0; });
+    return { st, stk, mon, seeds: Math.max(0, +$("fSeeds").value || 0), fed: Math.max(0, +$("fFed").value || 0) };
   }
   async function save() {
     if (!cur) return;

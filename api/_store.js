@@ -28,6 +28,8 @@ function cleanData(d) {
   if (d.stk && typeof d.stk === "object") {
     for (let i = 0; i < STAGES; i++) if (d.stk[i]) out.stk[i] = 1;
   }
+  out.mon = [];
+  for (let i = 0; i < 8; i++) out.mon.push(Array.isArray(d.mon) && d.mon[i] ? 1 : 0);
   return out;
 }
 

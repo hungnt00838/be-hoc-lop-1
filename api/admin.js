@@ -14,7 +14,7 @@ function summary(path, rec) {
   const d = rec.data || { st: [], seeds: 0, fed: 0, stk: {} };
   let stars = 0; for (const v of d.st || []) stars += v || 0;
   return { path, name: rec.name, created: rec.created || 0, updated: rec.updated || 0, stars, seeds: d.seeds || 0, fed: d.fed || 0,
-    stickers: Object.keys(d.stk || {}).length, data: S.cleanData(d) || S.cleanData({ st: [] }) };
+    stickers: Object.keys(d.stk || {}).length, mons: (d.mon || []).filter(Boolean).length, data: S.cleanData(d) || S.cleanData({ st: [] }) };
 }
 
 module.exports = async function handler(req, res) {
