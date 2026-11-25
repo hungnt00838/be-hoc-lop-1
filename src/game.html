@@ -49,6 +49,7 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
 .tiles .btn { display: inline-block; width: 22%; margin: 1%; font-size: 46px; min-height: 96px; }
 .pick { border: 4px solid #000; border-radius: 14px; padding: 4px 14px 12px; margin-bottom: 16px; }
 .pet { text-align: center; }
+.pet svg { max-width: 100%; height: auto; }
 .petbtn { display: block; width: 100%; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
 .petsay { text-align: center; font-size: 26px; font-weight: bold; margin: 0 0 6px; min-height: 32px; }
 .stat { text-align: center; font-size: 24px; margin: 6px 0 16px; }
@@ -631,14 +632,15 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   var PET_NAME = ["Quả trứng", "Gà con", "Gà lớn", "Gà trống", "Gà trống vua"];
   function petLevel() { var l = 0; for (var i = 0; i < PET_LV.length; i++) { if (P.fed >= PET_LV[i]) l = i; } return l; }
   function petSVG(l, w) {
-    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + Math.round(w * 0.85) + '" viewBox="0 0 260 220">';
+    var s = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + Math.round(w * 250 / 260) + '" viewBox="0 -30 260 250" style="overflow:visible">';
     var st = ' stroke="#000" stroke-width="5" ';
     s += '<line x1="20" y1="205" x2="240" y2="205"' + st + "/>" + '<g id="petg">';
     if (l === 0) {
+      s += '<g transform="translate(130 204) scale(1.32) translate(-130 -204)">';
       s += '<ellipse cx="130" cy="125" rx="58" ry="76" fill="#fff"' + st + "/>";
       s += '<circle cx="110" cy="95" r="8" fill="#999"/><circle cx="150" cy="140" r="11" fill="#999"/><circle cx="120" cy="165" r="6" fill="#999"/>';
       if (P && P.fed >= 1) s += '<path d="M76 118 L92 108 L102 124 L116 106 L128 122 L142 104 L154 120 L168 110 L184 118" fill="none" stroke="#000" stroke-width="4"/>';
-      return s + "</g></svg>";
+      return s + "</g></g></svg>";
     }
     if (l === 1) {
       s += '<line x1="115" y1="185" x2="110" y2="205"' + st + '/><line x1="145" y1="185" x2="150" y2="205"' + st + "/>";
@@ -715,7 +717,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     var l = petLevel();
     var g = gradeStr();
     app.innerHTML = "<h1>Chào " + nm() + "!</h1>" + (g ? '<p class="grade">' + (g === "Mẫu giáo" ? "Bé đang học mẫu giáo" : "Bé đang học " + g.toLowerCase()) + "</p>" : "") +
-      petBox(l, 170) +
+      petBox(l, 300) +
       '<div class="stat">' + PET_NAME[l] + " · Hạt thóc: <b>" + P.seeds + "</b> · Sao: <b>" + totalStars() + "/" + (STAGES.length * 3) +
       "</b> · Nhãn: <b>" + stickerCount() + "/" + STICKERS.length + "</b></div>" +
       '<table class="g"><tr><td><button class="btn dark" data-act="map">Bản đồ phiêu lưu</button></td>' +
@@ -989,7 +991,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function pet(msg) {
     S.mode = "";
     var l = petLevel(), h, need;
-    h = topBar("Hạt thóc: " + P.seeds) + "<h1>" + PET_NAME[l] + '</h1><p class="sub">Gà của bé <b>' + nm() + '</b></p>' + petBox(l, 300);
+    h = topBar("Hạt thóc: " + P.seeds) + "<h1>" + PET_NAME[l] + '</h1><p class="sub">Gà của bé <b>' + nm() + '</b></p>' + petBox(l, 460);
     if (msg) h += '<div class="fb">' + msg + "</div>";
     if (l < PET_LV.length - 1) { need = PET_LV[l + 1] - P.fed; h += '<p class="sub">Cho ăn thêm <b>' + need + " lần</b> nữa để " + (l === 0 ? "trứng nở" : "gà lớn lên") + ".</p>"; }
     else h += '<p class="sub">Gà đã lớn nhất rồi! Đã cho ăn ' + P.fed + " lần.</p>";
