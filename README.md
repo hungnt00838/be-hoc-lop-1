@@ -24,3 +24,9 @@ python3 tools/build.py index.html
 - Cần tạo một Blob store **Private** trong Vercel (Storage → Create → Blob) và kết nối với project; Vercel tự thêm biến `BLOB_READ_WRITE_TOKEN`.
 - Tuỳ chọn: biến `PIN_SALT` để đổi chuỗi muối khi băm ngày sinh.
 - Khi mở `index.html` trực tiếp từ file (không qua web), game chỉ lưu trên máy và có nút "Sao lưu" bằng mã.
+
+## Trang quản trị
+
+- Mở `/admin.html` trên trang Vercel. Đặt biến môi trường `ADMIN_PASSWORD` trong Vercel (Settings → Environment Variables) rồi deploy lại.
+- Xem danh sách các bé; sửa sao từng chặng, hạt thóc, số lần cho gà ăn, nhãn dán; đổi tên; đặt lại ngày sinh; xoá bé.
+- API: `api/admin.js`. Phần đọc/ghi Blob dùng chung nằm trong `api/_store.js`.

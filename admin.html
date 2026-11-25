@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Quản trị · Bé học lớp 1</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: #111; background: #f4f4f2; }
+header { background: #111; color: #fff; padding: 14px 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+header h1 { font-size: 20px; margin: 0; flex: 1; }
+main { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+.card { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 16px 18px; margin-bottom: 18px; }
+button { font: inherit; font-weight: 600; padding: 9px 16px; border-radius: 8px; border: 2px solid #111; background: #fff; cursor: pointer; min-height: 40px; }
+button.pri { background: #111; color: #fff; }
+button.danger { border-color: #b00020; color: #b00020; }
+button.danger.arm { background: #b00020; color: #fff; }
+button:disabled { opacity: .5; cursor: default; }
+input, select { font: inherit; padding: 8px 10px; border: 1px solid #999; border-radius: 8px; min-height: 40px; }
+label { display: block; font-size: 14px; color: #444; margin-bottom: 4px; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eee; }
+th { font-size: 13px; color: #555; font-weight: 600; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+tr.sel td { background: #fff7d6; }
+.row { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+.row > div { min-width: 140px; }
+.zones { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; margin: 10px 0; }
+.zone { border: 1px solid #ddd; border-radius: 8px; padding: 8px 10px; }
+.zone b { display: block; margin-bottom: 6px; }
+.zone .st { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
+.stk { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
+.stk label { display: flex; gap: 6px; align-items: center; color: #111; font-size: 15px; margin: 0; }
+.msg { margin: 10px 0 0; font-weight: 600; min-height: 24px; }
+.msg.err { color: #b00020; }
+.muted { color: #666; font-size: 14px; }
+.hide { display: none; }
+@media (max-width: 640px) { .hide-sm { display: none; } }
+</style>
+</head>
+<body>
+<header><h1>Quản trị · Bé học lớp 1</h1><button id="logout" class="hide">Đăng xuất</button></header>
+<main>
+  <section id="login" class="card">
+    <h2 style="margin-top:0">Đăng nhập quản trị</h2>
+    <div class="row">
+      <div style="flex:1"><label for="pw">Mật khẩu (biến ADMIN_PASSWORD trên Vercel)</label><input id="pw" type="password" style="width:100%" autocomplete="current-password"></div>
+      <div><button class="pri" id="loginBtn">Vào trang quản trị</button></div>
+    </div>
+    <p class="msg" id="loginMsg"></p>
+  </section>
+
+  <section id="listBox" class="card hide">
+    <div class="row" style="justify-content:space-between">
+      <div style="flex:1"><label for="q">Tìm theo tên</label><input id="q" type="search" style="width:100%" placeholder="Nhập tên bé"></div>
+      <div><button id="reload">Tải lại danh sách</button></div>
+    </div>
+    <p class="muted" id="count"></p>
+    <div style="overflow-x:auto"><table>
+      <thead><tr><th>Tên bé</th><th class="n">Sao</th><th class="n">Hạt thóc</th><th class="n hide-sm">Cho ăn</th><th class="n hide-sm">Nhãn</th><th class="hide-sm">Cập nhật</th><th></th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table></div>
+  </section>
+
+  <section id="edit" class="card hide">
+    <h2 style="margin-top:0" id="editTitle">Sửa</h2>
+    <div class="row">
+      <div style="flex:2"><label for="fName">Tên bé</label><input id="fName" style="width:100%" maxlength="30"></div>
+      <div><label for="fDob">Ngày sinh mới (để trống nếu không đổi)</label><input id="fDob" type="date"></div>
+      <div><label for="fSeeds">Hạt thóc</label><input id="fSeeds" type="number" min="0" style="width:120px"></div>
+      <div><label for="fFed">Số lần cho gà ăn</label><input id="fFed" type="number" min="0" style="width:120px"> <span class="muted" id="petLv"></span></div>
+    </div>
+    <p class="muted">Ngày sinh được lưu dạng mã hoá nên không xem được, chỉ đặt lại được. Đổi tên thì phải nhập lại ngày sinh.</p>
+    <h3>Sao từng chặng</h3>
+    <div class="row"><button id="unlockAll">Mở khoá tất cả chặng</button><button id="threeAll">3 sao tất cả</button><button id="resetAll">Xoá hết sao</button></div>
+    <div class="zones" id="zones"></div>
+    <h3>Nhãn dán</h3>
+    <div class="stk" id="stk"></div>
+    <div class="row" style="margin-top:18px">
+      <button class="pri" id="save">Lưu thay đổi</button>
+      <button id="cancel">Đóng</button>
+      <span style="flex:1"></span>
+      <button class="danger" id="del">Xoá bé này</button>
+    </div>
+    <p class="msg" id="editMsg"></p>
+  </section>
+</main>
+<script>
+{
+  const ZONES = ["Đồi Số Đếm", "Làng Chữ Cái", "Rừng Phép Tính", "Sông Vần Điệu", "Núi Số Lớn"];
+  const TYPES = [["Chọn đáp án", "Đúng hay Sai", "Chọn đáp án", "Lật thẻ"], ["Chọn đáp án", "Đúng hay Sai", "Xếp chữ", "Lật thẻ"],
+    ["Chọn đáp án", "Đúng hay Sai", "Chọn đáp án", "Lật thẻ"], ["Chọn đáp án", "Ô chữ", "Xếp chữ", "Lật thẻ"], ["Chọn đáp án", "Đúng hay Sai", "Ô chữ", "Lật thẻ"]];
+  const STICKERS = ["☀ Mặt trời", "☁ Đám mây", "☂ Cái ô", "☃ Người tuyết", "✿ Bông hoa", "☘ Cỏ ba lá", "♥ Trái tim", "♪ Nốt nhạc", "☺ Mặt cười", "⚓ Mỏ neo",
+    "✈ Máy bay", "❀ Hoa mai", "☎ Điện thoại", "✂ Cái kéo", "✏ Bút chì", "☕ Tách trà", "♞ Chú ngựa", "☾ Mặt trăng", "❄ Bông tuyết", "♔ Vương miện"];
+  const PET_LV = [0, 2, 6, 12, 20], PET_NAME = ["Quả trứng", "Gà con", "Gà lớn", "Gà trống", "Gà trống vua"];
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  let PW = "", players = [], cur = null;
+  try { PW = sessionStorage.getItem("adminpw") || ""; } catch (e) {}
+
+  async function api(body) {
+    const r = await fetch("/api/admin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(Object.assign({ password: PW }, body)) });
+    let j = null; try { j = await r.json(); } catch (e) {}
+    if (!r.ok || !j || !j.ok) { const err = new Error((j && j.error) || ("Lỗi " + r.status)); err.status = r.status; throw err; }
+    return j;
+  }
+  function show(id, on) { $(id).classList.toggle("hide", !on); }
+  function msg(id, text, err) { $(id).textContent = text || ""; $(id).classList.toggle("err", !!err); }
+  function fmt(t) { return t ? new Date(t).toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" }) : "–"; }
+
+  async function load() {
+    msg("loginMsg", "Đang tải...");
+    try {
+      const j = await api({ action: "list" });
+      players = j.players;
+      try { sessionStorage.setItem("adminpw", PW); } catch (e) {}
+      show("login", false); show("listBox", true); show("logout", true); msg("loginMsg", "");
+      render();
+    } catch (e) {
+      show("login", true); show("listBox", false); show("edit", false); msg("loginMsg", e.message, true);
+      if (e.status === 401) { PW = ""; try { sessionStorage.removeItem("adminpw"); } catch (x) {} }
+    }
+  }
+  function render() {
+    const q = $("q").value.trim().toLowerCase();
+    const list = players.filter(p => !q || p.name.toLowerCase().includes(q));
+    $("count").textContent = players.length + " bé" + (q ? " · đang hiện " + list.length : "");
+    $("rows").innerHTML = list.length ? list.map(p => '<tr class="' + (cur && cur.path === p.path ? "sel" : "") + '"><td><b>' + esc(p.name) + "</b></td>" +
+      '<td class="n">' + p.stars + '/60</td><td class="n">' + p.seeds + '</td><td class="n hide-sm">' + p.fed + '</td><td class="n hide-sm">' + p.stickers +
+      '/20</td><td class="hide-sm">' + fmt(p.updated) + '</td><td><button data-path="' + esc(p.path) + '">Sửa</button></td></tr>').join("")
+      : '<tr><td colspan="7" class="muted">Chưa có bé nào' + (q ? " khớp với tìm kiếm" : "") + ".</td></tr>";
+  }
+  function petLabel() { const f = +$("fFed").value || 0; let l = 0; PET_LV.forEach((v, i) => { if (f >= v) l = i; }); $("petLv").textContent = PET_NAME[l]; }
+  function openEdit(p) {
+    cur = JSON.parse(JSON.stringify(p));
+    $("editTitle").textContent = "Sửa: " + p.name;
+    $("fName").value = p.name; $("fDob").value = ""; $("fSeeds").value = p.data.seeds; $("fFed").value = p.data.fed; petLabel();
+    let z = "";
+    ZONES.forEach((zn, zi) => {
+      z += '<div class="zone"><b>' + (zi + 1) + ". " + zn + "</b>";
+      for (let j = 0; j < 4; j++) {
+        const i = zi * 4 + j;
+        z += '<div class="st"><span>Chặng ' + (i + 1) + ' <span class="muted">' + TYPES[zi][j] + '</span></span><select data-st="' + i + '">' +
+          [0, 1, 2, 3].map(v => '<option value="' + v + '"' + (p.data.st[i] === v ? " selected" : "") + ">" + (v ? "★".repeat(v) : "0 sao") + "</option>").join("") + "</select></div>";
+      }
+      z += "</div>";
+    });
+    $("zones").innerHTML = z;
+    $("stk").innerHTML = STICKERS.map((s, i) => '<label><input type="checkbox" data-stk="' + i + '"' + (p.data.stk[i] ? " checked" : "") + "> " + esc(s) + "</label>").join("");
+    $("del").classList.remove("arm"); $("del").textContent = "Xoá bé này";
+    msg("editMsg", ""); show("edit", true); render();
+    $("edit").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function setAll(fn) { document.querySelectorAll("[data-st]").forEach(s => { s.value = String(fn(+s.value)); }); }
+  function collect() {
+    const st = [], stk = {};
+    document.querySelectorAll("[data-st]").forEach(s => { st[+s.dataset.st] = +s.value; });
+    document.querySelectorAll("[data-stk]").forEach(c => { if (c.checked) stk[+c.dataset.stk] = 1; });
+    return { st, stk, seeds: Math.max(0, +$("fSeeds").value || 0), fed: Math.max(0, +$("fFed").value || 0) };
+  }
+  async function save() {
+    if (!cur) return;
+    $("save").disabled = true; msg("editMsg", "Đang lưu...");
+    try {
+      const j = await api({ action: "save", path: cur.path, name: $("fName").value, dob: $("fDob").value, data: collect() });
+      players = players.filter(p => p.path !== cur.path); players.unshift(j.player);
+      openEdit(j.player); msg("editMsg", "Đã lưu. Bé sẽ thấy thay đổi ở lần vào game tiếp theo.");
+    } catch (e) { msg("editMsg", e.message, true); }
+    $("save").disabled = false;
+  }
+  async function del() {
+    if (!cur) return;
+    const b = $("del");
+    if (!b.classList.contains("arm")) { b.classList.add("arm"); b.textContent = "Bấm lần nữa để xoá vĩnh viễn"; return; }
+    b.disabled = true; msg("editMsg", "Đang xoá...");
+    try {
+      await api({ action: "delete", path: cur.path });
+      players = players.filter(p => p.path !== cur.path); cur = null; show("edit", false); render();
+    } catch (e) { msg("editMsg", e.message, true); }
+    b.disabled = false;
+  }
+
+  $("loginBtn").onclick = () => { PW = $("pw").value; load(); };
+  $("pw").onkeydown = ev => { if (ev.key === "Enter") { PW = $("pw").value; load(); } };
+  $("logout").onclick = () => { PW = ""; try { sessionStorage.removeItem("adminpw"); } catch (e) {} location.reload(); };
+  $("reload").onclick = load;
+  $("q").oninput = render;
+  $("rows").onclick = ev => { const b = ev.target.closest("button[data-path]"); if (b) openEdit(players.find(p => p.path === b.dataset.path)); };
+  $("fFed").oninput = petLabel;
+  $("unlockAll").onclick = () => setAll(v => Math.max(v, 2));
+  $("threeAll").onclick = () => { setAll(() => 3); document.querySelectorAll("[data-stk]").forEach(c => { c.checked = true; }); };
+  $("resetAll").onclick = () => setAll(() => 0);
+  $("save").onclick = save;
+  $("cancel").onclick = () => { cur = null; show("edit", false); render(); };
+  $("del").onclick = del;
+  if (PW) load();
+}
+</script>
+</body>
+</html>
