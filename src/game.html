@@ -61,6 +61,14 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
 .inp.pin { text-transform: none; text-align: center; padding: 14px 4px; }
 table.dob .inp { margin: 0; }
 .inp.code-in { text-transform: uppercase; text-align: center; letter-spacing: 2px; }
+.grade { text-align: center; font-size: 26px; font-weight: bold; margin: -4px 0 8px; }
+.panel { border: 5px solid #000; border-radius: 16px; padding: 18px 8px; margin: 8px 0 12px; text-align: center; min-height: 190px; }
+.panel svg { margin: 0 6px; }
+.caption { font-size: 32px; line-height: 1.5; text-align: center; font-weight: bold; margin: 8px 4px 18px; }
+.story { font-size: 30px; line-height: 1.65; margin: 8px 4px 18px; }
+.story.q { text-align: center; font-weight: bold; }
+.story-btn { text-align: left; }
+.story-btn svg { vertical-align: middle; }
 .pic { text-align: center; margin: 4px 0 8px; line-height: 1.1; }
 .ic { vertical-align: middle; margin: 2px; }
 .op { font-size: 48px; vertical-align: middle; }
@@ -539,7 +547,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
 
   // ================= LƯU TIẾN TRÌNH =================
   var NAME = "", P, MEM = {};
-  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {}, mon: [] }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
+  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {}, mon: [], rd: [] }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
   function lsGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function lsSet(key, v) { try { window.localStorage.setItem(key, v); } catch (e) {} }
   function players() { var r = lsGet("lop1_players"); try { if (r) return JSON.parse(r); } catch (e) {} return MEM.players || []; }
@@ -555,6 +563,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     P = (o && o.st) ? o : freshP();
     while (P.st.length < STAGES.length) P.st.push(0);
     if (!P.mon) P.mon = [];
+    if (!P.rd) P.rd = [];
     NAME = n;
     if (!has(list, n)) { list.push(n); MEM.players = list; lsSet("lop1_players", JSON.stringify(list)); }
     lsSet("lop1_last", n);
@@ -655,16 +664,30 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   var S = { mode: "", stage: -1, subj: "", lvl: 0, qs: [], i: 0, score: 0, chosen: -1, cards: [], flip: [], moves: 0, msg: "" };
   var app = document.getElementById("app");
   var FREE_NAMES = { toan: "Toán", tv: "Tiếng Việt", tron: "Toán + Tiếng Việt" };
+  // Lớp của bé theo năm sinh: vào lớp 1 vào tháng 9 của năm bé tròn 6 tuổi
+  function gradeNum() {
+    var m = /^([0-9]{4})-/.exec(PIN || ""), now = new Date(), sy;
+    if (!m) return null;
+    sy = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+    return sy - parseInt(m[1], 10) - 5;
+  }
+  function gradeStr() {
+    var g = gradeNum();
+    if (g === null || g > 12) return "";
+    return g >= 1 ? "Lớp " + g : "Mẫu giáo";
+  }
   function topBar(left, back) {
-    return '<div class="top"><span class="l"><b>' + nm() + "</b> · " + left + '</span><span class="r"><button class="btn small" data-act="' +
-      (back || "home") + '">' + (back === "map" ? "Bản đồ" : "Trang chủ") + "</button></span></div>";
+    var g = gradeStr();
+    return '<div class="top"><span class="l"><b>' + nm() + "</b>" + (g ? " (" + g.toLowerCase() + ")" : "") + " · " + left + '</span><span class="r"><button class="btn small" data-act="' +
+      (back || "home") + '">' + ({ map: "Bản đồ", read: "Tủ truyện" }[back] || "Trang chủ") + "</button></span></div>";
   }
   function starStr(n) { var s = "", i; for (i = 0; i < 3; i++) s += i < n ? "★" : "☆"; return s; }
 
   function home() {
     S.mode = "";
     var l = petLevel();
-    app.innerHTML = "<h1>Chào " + nm() + "!</h1>" +
+    var g = gradeStr();
+    app.innerHTML = "<h1>Chào " + nm() + "!</h1>" + (g ? '<p class="grade">' + (g === "Mẫu giáo" ? "Bé đang học mẫu giáo" : "Bé đang học " + g.toLowerCase()) + "</p>" : "") +
       '<div class="pet">' + petSVG(l, 170) + "</div>" +
       '<div class="stat">' + PET_NAME[l] + " · Hạt thóc: <b>" + P.seeds + "</b> · Sao: <b>" + totalStars() + "/" + (STAGES.length * 3) +
       "</b> · Nhãn: <b>" + stickerCount() + "/" + STICKERS.length + "</b></div>" +
@@ -674,7 +697,8 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       '<td><button class="btn" data-act="album">Album nhãn dán</button></td></tr></table>' +
       '<table class="g"><tr><td><button class="btn" data-act="free">Luyện tập tự do</button></td>' +
       '<td><button class="btn" data-act="photos">Ảnh của bé</button></td></tr></table>' +
-      '<button class="btn" data-act="notes">Ghi chú</button>' +
+      '<table class="g"><tr><td><button class="btn dark" data-act="read">Đọc truyện</button></td>' +
+      '<td><button class="btn" data-act="notes">Ghi chú</button></td></tr></table>' +
       (ONLINE ? '<p class="note">' + ({ ok: "Đã lưu trên máy chủ.", err: "Chưa lưu được lên máy chủ, game sẽ tự thử lại.", wait: "Đang lưu lên máy chủ..." }[SYNC.state] || "") + "</p>" : "") +
       '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button>' +
       (ONLINE ? "" : ' &nbsp; <button class="btn small" data-act="backup">Sao lưu</button>') + "</p>";
@@ -1320,6 +1344,143 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   }
 
 
+  // ================= ĐỌC TRUYỆN =================
+  // t: "tranh" (truyện tranh, mỗi trang 1 khung hình) hoặc "chu" (truyện chữ)
+  // p: các trang [hình minh hoạ, lời]; q: câu hỏi [câu hỏi, đáp án đúng, sai, sai]
+  var STORIES = [
+    { t: "tranh", n: "Mèo con đi câu cá", p: [
+      [["mèo", "sông"], "Sáng nay, mèo con ra bờ sông câu cá."],
+      [["mèo", "chim"], "Chim sẻ bay qua, rủ mèo con đi chơi."],
+      [["mèo"], "Mèo con lắc đầu: Tớ đang câu cá mà!"],
+      [["cá"], "Một lúc sau, có một con cá to cắn câu."],
+      [["mèo", "cá", "nhà"], "Mèo con vui quá, mang cá về cho mẹ."]],
+      q: [["Mèo con đi câu cá ở đâu?", "Bờ sông", "Trên núi", "Trong lớp"], ["Mèo con câu được gì?", "Con cá to", "Quả cam", "Cái mũ"]] },
+    { t: "tranh", n: "Gà con tìm mẹ", p: [
+      [["trứng", "gà"], "Gà con vừa chui ra khỏi vỏ trứng."],
+      [["gà", "vịt"], "Gà con hỏi vịt: Bạn có phải mẹ tớ không?"],
+      [["vịt"], "Vịt cười: Cạp cạp, tớ là vịt cơ."],
+      [["gà", "bò"], "Gà con hỏi bò. Bò kêu: Ò ò, tớ là bò."],
+      [["gà", "gà"], "Bỗng có tiếng: Cục ta cục tác! Mẹ gà chạy tới."],
+      [["gà", "nhà"], "Gà con theo mẹ về nhà. Thật là vui!"]],
+      q: [["Gà con hỏi ai trước tiên?", "Vịt", "Bò", "Mèo"], ["Ai là mẹ của gà con?", "Gà mẹ", "Vịt", "Bò"]] },
+    { t: "tranh", n: "Bạn voi tốt bụng", p: [
+      [["voi", "cây"], "Voi đi dạo trong rừng."],
+      [["thỏ", "mưa"], "Trời đổ mưa. Thỏ con bị ướt hết cả lông."],
+      [["voi", "thỏ"], "Voi giơ cái tai to ra che mưa cho thỏ."],
+      [["thỏ", "hoa"], "Mưa tạnh, thỏ hái một bông hoa."],
+      [["voi", "hoa"], "Thỏ tặng hoa cho voi: Cảm ơn bạn voi!"]],
+      q: [["Voi che mưa cho thỏ bằng gì?", "Cái tai", "Cái mũ", "Cái lá"], ["Thỏ tặng voi cái gì?", "Bông hoa", "Quả chuối", "Cái kẹo"]] },
+    { t: "tranh", n: "Chuột nhắt chia kem", p: [
+      [["chuột", "kem"], "Chuột nhắt được mẹ cho một que kem."],
+      [["chim"], "Chim sẻ đứng nhìn, thèm lắm."],
+      [["chuột", "kem", "chim"], "Chuột bẻ đôi que kem, mời chim sẻ ăn cùng."],
+      [["chuột", "chim", "sao"], "Hai bạn cùng ăn, cùng cười. Chia cho bạn thật vui!"]],
+      q: [["Chuột nhắt có gì?", "Que kem", "Quả trứng", "Bát cơm"], ["Chuột chia kem cho ai?", "Chim sẻ", "Mèo", "Voi"]] },
+    { t: "tranh", n: "Hạt giống nhỏ", p: [
+      [["cỏ"], "Bé gieo một hạt giống nhỏ xuống đất."],
+      [["mưa"], "Trời mưa. Hạt giống được uống nước mát."],
+      [["lá"], "Hạt giống nảy mầm, mọc ra lá non xanh."],
+      [["cây"], "Ngày qua ngày, cây lớn dần, lớn dần."],
+      [["hoa", "hoa", "hoa"], "Rồi cây nở ra những bông hoa thật đẹp."]],
+      q: [["Hạt giống cần gì để lớn?", "Nước mưa", "Kẹo", "Đèn"], ["Cuối cùng cây nở ra gì?", "Bông hoa", "Quả bóng", "Cái bút"]] },
+    { t: "chu", n: "Chú gà trống", p: [
+      [["gà"], "Nhà bé có một chú gà trống. Mào chú đỏ tươi, lông chú óng ánh."],
+      [["trăng", "sao"], "Mỗi sáng, khi trời còn tối, gà trống đã gáy: Ò ó o! Ò ó o!"],
+      [["nhà"], "Nghe tiếng gà gáy, cả nhà thức dậy. Bé đánh răng, rửa mặt rồi ăn sáng."],
+      [["vở", "bút"], "Nhờ có gà trống, bé đi học đúng giờ. Bé thầm cảm ơn chú gà trống chăm chỉ."]],
+      q: [["Gà trống gáy thế nào?", "Ò ó o", "Meo meo", "Gâu gâu"], ["Nhờ gà trống, bé làm được gì?", "Đi học đúng giờ", "Đi ngủ sớm", "Ăn thêm kẹo"]] },
+    { t: "chu", n: "Cây bút chì của Na", p: [
+      [["bút"], "Na có một cây bút chì mới. Na rất thích cây bút ấy."],
+      [["bàn", "vở"], "Vào lớp, bạn Hà ngồi bên cạnh quên mang bút. Hà buồn lắm."],
+      [["bút"], "Na liền cho Hà mượn bút. Hà cảm ơn Na và viết bài thật đẹp."],
+      [["kẹo"], "Hôm sau, Hà mang cho Na một cái kẹo. Hai bạn càng thêm thân."]],
+      q: [["Ai quên mang bút?", "Bạn Hà", "Bạn Na", "Cô giáo"], ["Na cho Hà mượn gì?", "Bút chì", "Quyển vở", "Cái mũ"], ["Hôm sau Hà mang cho Na gì?", "Cái kẹo", "Quả cam", "Bông hoa"]] },
+    { t: "chu", n: "Cơn mưa mùa hè", p: [
+      [["cây"], "Trưa hè, trời nóng nực. Cây cối đứng im, lá rủ xuống."],
+      [["gió"], "Bỗng gió thổi mạnh. Mây đen kéo đến che kín bầu trời."],
+      [["mưa"], "Mưa rơi lộp độp, lộp độp. Mưa tưới mát cả khu vườn."],
+      [["lá", "hoa"], "Mưa tạnh, cây lá xanh tươi, hoa nở rực rỡ. Bé reo lên: A, cầu vồng kìa!"]],
+      q: [["Trước khi mưa, trời thế nào?", "Nóng nực", "Rất lạnh", "Có tuyết"], ["Mưa tạnh, bé nhìn thấy gì?", "Cầu vồng", "Ông trăng", "Ngọn núi lửa"]] },
+    { t: "chu", n: "Bé giúp mẹ", p: [
+      [["nhà"], "Chủ nhật, cả nhà bé đều ở nhà."],
+      [["cơm"], "Mẹ nấu cơm. Bé giúp mẹ nhặt rau và xếp bát đũa lên bàn."],
+      [["ghế", "bàn"], "Bố lau nhà. Bé kê lại ghế cho ngay ngắn."],
+      [["cơm", "sao"], "Cả nhà ngồi ăn cơm vui vẻ. Mẹ khen: Con ngoan quá!"]],
+      q: [["Bé giúp mẹ làm gì?", "Nhặt rau, xếp bát", "Lau nhà", "Đi chợ"], ["Ai lau nhà?", "Bố", "Bé", "Mẹ"]] },
+    { t: "chu", n: "Chú cá vàng", p: [
+      [["cá"], "Bé có một chú cá vàng nhỏ. Cá sống trong cái bể kính trên bàn."],
+      [["cá", "trăng"], "Sáng nào bé cũng cho cá ăn. Cá bơi vòng vòng, vẫy cái đuôi xinh."],
+      [["cá"], "Có một hôm bé mải chơi nên quên. Cá bơi chậm chạp, trông buồn lắm."],
+      [["cá", "sao"], "Bé vội cho cá ăn và nói: Xin lỗi cá nhé! Từ đó bé không bao giờ quên nữa."]],
+      q: [["Cá vàng sống ở đâu?", "Trong bể kính", "Ngoài sông", "Trên cây"], ["Vì sao có hôm cá buồn?", "Bé quên cho ăn", "Trời mưa", "Cá bị ốm"]] },
+    { t: "chu", n: "Ông trăng tròn", p: [
+      [["trăng"], "Đêm rằm, ông trăng tròn như cái đĩa, treo trên ngọn tre."],
+      [["sao"], "Quanh ông trăng có bao nhiêu là sao. Sao nào cũng nhấp nháy như cười."],
+      [["đèn", "nhà"], "Bé cùng các bạn rước đèn quanh xóm. Tiếng hát vang khắp nơi."],
+      [["trăng", "nhà"], "Về nhà, bé ngồi ngắm trăng. Bé ước mình được bay lên chơi với ông trăng."]],
+      q: [["Đêm rằm, trăng thế nào?", "Tròn", "Khuyết", "Không có trăng"], ["Bé cùng các bạn làm gì?", "Rước đèn", "Đá bóng", "Câu cá"]] }
+  ];
+  var RD = { k: -1, pg: 0, qi: 0, score: 0, pick: -1, opts: [] };
+  function readMenu() {
+    S.mode = "readmenu";
+    var h = topBar("Tủ truyện"), i, s, n = 0;
+    for (i = 0; i < STORIES.length; i++) if (P.rd[i]) n++;
+    h += '<p class="sub">Bé đã đọc ' + n + "/" + STORIES.length + " truyện. Đọc xong và trả lời câu hỏi để được hạt thóc!</p>";
+    function list(t, title) {
+      var r = '<div class="pick"><h2>' + title + "</h2>";
+      for (i = 0; i < STORIES.length; i++) {
+        s = STORIES[i]; if (s.t !== t) continue;
+        r += '<button class="btn story-btn' + '" data-act="story" data-v="' + i + '">' + ic(s.p[0][0][0], 50) + " " + esc(s.n) + (P.rd[i] ? " ✓" : "") + "</button>";
+      }
+      return r + "</div>";
+    }
+    app.innerHTML = h + list("tranh", "Truyện tranh") + list("chu", "Truyện chữ");
+  }
+  function storyPage() {
+    S.mode = "story";
+    var s = STORIES[RD.k], pg = s.p[RD.pg], last = RD.pg === s.p.length - 1, h, j, big = s.t === "tranh";
+    h = topBar((big ? "Truyện tranh" : "Truyện chữ") + " · Trang " + (RD.pg + 1) + "/" + s.p.length, "read");
+    h += "<h2>" + esc(s.n) + "</h2>";
+    if (big) {
+      h += '<div class="panel">';
+      for (j = 0; j < pg[0].length; j++) h += ic(pg[0][j], pg[0].length > 2 ? 130 : 170);
+      h += '</div><p class="caption">' + esc(pg[1]) + "</p>";
+    } else {
+      h += '<div class="pic">';
+      for (j = 0; j < pg[0].length; j++) h += ic(pg[0][j], 90);
+      h += '</div><p class="story">' + esc(pg[1]) + "</p>";
+    }
+    h += '<table class="g"><tr><td>' + (RD.pg > 0 ? '<button class="btn" data-act="pgprev">Trang trước</button>' : "") + "</td><td>" +
+      (last ? '<button class="btn dark" data-act="rdq">Trả lời câu hỏi</button>' : '<button class="btn dark" data-act="pgnext">Trang sau</button>') + "</td></tr></table>";
+    app.innerHTML = h;
+  }
+  function storyQ() {
+    S.mode = "storyq";
+    var s = STORIES[RD.k], q = s.q[RD.qi], h, i;
+    if (RD.pick < 0 && !RD.opts.length) RD.opts = shuffle([1, 2, 3]);
+    h = topBar("Câu hỏi " + (RD.qi + 1) + "/" + s.q.length, "read") + "<h2>" + esc(s.n) + '</h2><p class="story q">' + esc(q[0]) + "</p>";
+    for (i = 0; i < 3; i++) {
+      var o = RD.opts[i], cls = "btn";
+      if (RD.pick >= 0) { if (o === 1) cls += " dark"; else if (o === RD.pick) cls += " off"; }
+      h += '<button class="' + cls + '" data-act="rdans" data-v="' + o + '">' + (RD.pick >= 0 && o === 1 ? "✓ " : "") + esc(q[o]) + "</button>";
+    }
+    if (RD.pick >= 0) {
+      h += '<p class="fb">' + (RD.pick === 1 ? "Đúng rồi! Giỏi quá!" : "Chưa đúng. Đáp án là: " + esc(q[1])) + "</p>";
+      h += '<button class="btn dark" data-act="rdnext">' + (RD.qi < s.q.length - 1 ? "Câu tiếp theo" : "Xem kết quả") + "</button>";
+    }
+    app.innerHTML = h;
+  }
+  function storyEnd() {
+    S.mode = "storyend";
+    var s = STORIES[RD.k], first = !P.rd[RD.k], gain = first ? 2 + RD.score : RD.score;
+    P.rd[RD.k] = 1; P.seeds += gain; save();
+    app.innerHTML = topBar("Đọc xong", "read") + "<h1>Bé đọc xong truyện!</h1><h2>" + esc(s.n) + "</h2>" +
+      '<p class="fb">Đúng ' + RD.score + "/" + s.q.length + " câu</p>" +
+      '<p class="sub">Bé được thêm <b>' + gain + "</b> hạt thóc" + (first ? " (có thưởng đọc lần đầu)" : "") + ".</p>" +
+      '<button class="btn" data-act="story" data-v="' + RD.k + '">Đọc lại truyện này</button>' +
+      '<button class="btn dark" data-act="read">Chọn truyện khác</button>';
+  }
+
   // ================= GHI CHÚ CỦA BÉ =================
   var NT = { list: null, msg: "", arm: -1 };
   function notesScreen(msg) {
@@ -1388,6 +1549,13 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "setname") setName();
     else if (act === "backup") backup();
     else if (act === "monsters") monsters();
+    else if (act === "read") readMenu();
+    else if (act === "story") { RD.k = parseInt(v, 10); RD.pg = 0; storyPage(); }
+    else if (act === "pgnext") { RD.pg++; storyPage(); }
+    else if (act === "pgprev") { RD.pg--; storyPage(); }
+    else if (act === "rdq") { RD.qi = 0; RD.score = 0; RD.pick = -1; RD.opts = []; storyQ(); }
+    else if (act === "rdans") { if (RD.pick < 0) { RD.pick = parseInt(v, 10); if (RD.pick === 1) RD.score++; storyQ(); } scroll = false; }
+    else if (act === "rdnext") { RD.qi++; RD.pick = -1; RD.opts = []; if (RD.qi < STORIES[RD.k].q.length) storyQ(); else storyEnd(); }
     else if (act === "notes") { NT.list = null; NT.msg = ""; NT.arm = -1; notesScreen(); }
     else if (act === "addnote") addNote();
     else if (act === "delnote") { delNote(parseInt(v, 10)); scroll = false; }
