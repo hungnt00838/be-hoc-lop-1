@@ -64,6 +64,18 @@ table.map .btn { font-size: 24px; min-height: 104px; padding: 8px 2px; }
 .inp.pin { text-transform: none; text-align: center; padding: 14px 4px; }
 table.dob .inp { margin: 0; }
 .inp.code-in { text-transform: uppercase; text-align: center; letter-spacing: 2px; }
+.mzwrap { text-align: center; margin: 6px 0; }
+table.arrows { width: 70%; margin: 0 auto; }
+table.arrows .btn { font-size: 34px; min-height: 76px; padding: 4px; }
+.dfbox { text-align: center; margin: 4px 0 8px; }
+table.dfg { border: 4px solid #000; border-collapse: collapse; margin: 0 auto; table-layout: fixed; }
+table.dfg td { padding: 0; text-align: center; vertical-align: middle; }
+.dfb { display: block; width: 100%; background: #fff; border: 0; padding: 0; margin: 0; cursor: pointer; }
+.dfc { text-align: center; border: 5px solid transparent; border-radius: 50%; box-sizing: border-box; -webkit-box-sizing: border-box; }
+.dfc svg { vertical-align: middle; }
+.dfc.found { border-color: #000; }
+.mir { display: inline-block; -webkit-transform: scaleX(-1); transform: scaleX(-1); }
+table.lv .btn { padding: 10px 2px; min-height: 64px; }
 .grade { text-align: center; font-size: 26px; font-weight: bold; margin: -4px 0 8px; }
 .panel { border: 5px solid #000; border-radius: 16px; padding: 18px 8px; margin: 8px 0 12px; text-align: center; min-height: 190px; }
 .panel svg { margin: 0 6px; }
@@ -550,7 +562,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
 
   // ================= LƯU TIẾN TRÌNH =================
   var NAME = "", P, MEM = {};
-  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {}, mon: [], rd: [] }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
+  function freshP() { var p = { st: [], seeds: 0, fed: 0, stk: {}, mon: [], rd: [], gz: 0, gd: 0 }; for (var i = 0; i < STAGES.length; i++) p.st.push(0); return p; }
   function lsGet(key) { try { return window.localStorage.getItem(key); } catch (e) { return null; } }
   function lsSet(key, v) { try { window.localStorage.setItem(key, v); } catch (e) {} }
   function players() { var r = lsGet("lop1_players"); try { if (r) return JSON.parse(r); } catch (e) {} return MEM.players || []; }
@@ -732,7 +744,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function topBar(left, back) {
     var g = gradeStr();
     return '<div class="top"><span class="l"><b>' + nm() + "</b>" + (g ? " (" + g.toLowerCase() + ")" : "") + " · " + left + '</span><span class="r"><button class="btn small" data-act="' +
-      (back || "home") + '">' + ({ map: "Bản đồ", read: "Tủ truyện" }[back] || "Trang chủ") + "</button></span></div>";
+      (back || "home") + '">' + ({ map: "Bản đồ", read: "Tủ truyện", games: "Trò chơi", glist: "Chọn màn" }[back] || "Trang chủ") + "</button></span></div>";
   }
   function starStr(n) { var s = "", i; for (i = 0; i < 3; i++) s += i < n ? "★" : "☆"; return s; }
 
@@ -751,7 +763,8 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       '<table class="g"><tr><td><button class="btn" data-act="free">Luyện tập tự do</button></td>' +
       '<td><button class="btn" data-act="photos">Ảnh của bé</button></td></tr></table>' +
       '<table class="g"><tr><td><button class="btn dark" data-act="read">Đọc truyện</button></td>' +
-      '<td><button class="btn" data-act="notes">Ghi chú</button></td></tr></table>' +
+      '<td><button class="btn dark" data-act="games">Trò chơi</button></td></tr></table>' +
+      '<button class="btn" data-act="notes">Ghi chú</button>' +
       (ONLINE ? '<p class="note">' + ({ ok: "Đã lưu trên máy chủ.", err: "Chưa lưu được lên máy chủ, game sẽ tự thử lại.", wait: "Đang lưu lên máy chủ..." }[SYNC.state] || "") + "</p>" : "") +
       '<p class="note"><button class="btn small" data-act="who0">Đổi người chơi</button>' +
       (ONLINE ? "" : ' &nbsp; <button class="btn small" data-act="backup">Sao lưu</button>') + "</p>";    setTimeout(function () { if (S.mode === "") petWiggle(false); }, 700);
@@ -1397,6 +1410,166 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   }
 
 
+  // ================= TRÒ CHƠI GIẢI TRÍ =================
+  // Mỗi trò 50 màn, màn sinh ra cố định theo số màn (cùng màn thì luôn giống nhau)
+  var GM_N = 50;
+  function rng(seed) {
+    var a = seed >>> 0;
+    return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul ? Math.imul(t ^ (t >>> 15), t | 1) : (t ^ (t >>> 15)) * (t | 1);
+      t ^= t + (Math.imul ? Math.imul(t ^ (t >>> 7), t | 61) : (t ^ (t >>> 7)) * (t | 61)); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function rint(r, n) { return Math.floor(r() * n); }
+  function rshuf(r, arr) { var a = arr.slice(), i, j, t; for (i = a.length - 1; i > 0; i--) { j = rint(r, i + 1); t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  var GM = { g: "", lv: 0 };
+  function gamesMenu() {
+    S.mode = "games";
+    app.innerHTML = topBar("Trò chơi") + "<h1>Trò chơi</h1>" +
+      '<p class="sub">Chơi cho vui, nghỉ ngơi một chút nhé! Mỗi trò có ' + GM_N + " màn.</p>" +
+      '<button class="btn dark" data-act="glist" data-v="z">' + ic("gà", 56) + " Mê cung<span class=\"s\">Đã qua " + (P.gz || 0) + "/" + GM_N + " màn</span></button>" +
+      '<button class="btn dark" data-act="glist" data-v="d">' + ic("sao", 56) + " Tìm điểm khác nhau<span class=\"s\">Đã qua " + (P.gd || 0) + "/" + GM_N + " màn</span></button>";
+  }
+  function gDone(g) { return (g === "z" ? P.gz : P.gd) || 0; }
+  function gameList(g) {
+    S.mode = "glist"; GM.g = g;
+    var done = gDone(g), h = topBar(g === "z" ? "Mê cung" : "Tìm điểm khác nhau", "games") +
+      "<h2>" + (g === "z" ? "Mê cung" : "Tìm điểm khác nhau") + "</h2>" +
+      '<p class="sub">' + (g === "z" ? "Dẫn gà con về nhà." : "Tìm những chỗ khác nhau giữa hai bức tranh.") + " Qua màn này sẽ mở màn sau.</p>" +
+      '<table class="g lv"><tr>', i;
+    for (i = 1; i <= GM_N; i++) {
+      if (i > 1 && (i - 1) % 5 === 0) h += "</tr><tr>";
+      h += i <= done + 1 ? '<td><button class="btn' + (i === done + 1 ? " dark" : "") + '" data-act="gplay" data-v="' + i + '">' + i + (i <= done ? '<span class="s">✓</span>' : "") + "</button></td>"
+        : '<td><button class="btn off">' + i + "</button></td>";
+    }
+    app.innerHTML = h + "</tr></table>";
+  }
+  function gPlay(lv) { GM.lv = lv; if (GM.g === "z") mazeStart(lv); else diffStart(lv); }
+  function gWin(title) {
+    S.mode = "gwin";
+    var first = GM.lv > gDone(GM.g), h;
+    if (first) { if (GM.g === "z") P.gz = GM.lv; else P.gd = GM.lv; P.seeds += 1; save(); }
+    h = topBar(GM.g === "z" ? "Mê cung" : "Tìm điểm khác nhau", "games") + "<h1>Hoan hô!</h1>" + pic(GM.g === "z" ? "nhà" : "sao", 150) +
+      "<h2>" + title + "</h2>" + (first ? '<p class="sub">Bé được thêm <b>1</b> hạt thóc.</p>' : "");
+    if (GM.lv < GM_N) h += '<button class="btn dark" data-act="gplay" data-v="' + (GM.lv + 1) + '">Màn ' + (GM.lv + 1) + "</button>";
+    else h += '<p class="fb">Bé đã qua hết ' + GM_N + " màn. Giỏi quá!</p>";
+    h += '<table class="g"><tr><td><button class="btn" data-act="glist" data-v="' + GM.g + '">Chọn màn</button></td><td><button class="btn" data-act="games">Trò chơi khác</button></td></tr></table>';
+    app.innerHTML = h;
+  }
+
+  // ----- Mê cung -----
+  var MZ = null;
+  function mazeSize(lv) { var c = Math.min(4 + Math.floor((lv - 1) / 5), 13); return { c: c, r: Math.min(c + Math.floor(c / 4), c + 3) }; }
+  function mazeGen(lv) {
+    var sz = mazeSize(lv), C = sz.c, R = sz.r, r = rng(lv * 7919 + 17), cell = [], seen = [], stack = [0], i, cur, nb, d, n, DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0], BIT = [1, 2, 4, 8], OPP = [4, 8, 1, 2];
+    for (i = 0; i < C * R; i++) { cell.push(0); seen.push(false); }
+    seen[0] = true;
+    while (stack.length) {
+      cur = stack[stack.length - 1]; nb = [];
+      for (d = 0; d < 4; d++) {
+        var x = cur % C + DX[d], y = Math.floor(cur / C) + DY[d];
+        if (x >= 0 && y >= 0 && x < C && y < R && !seen[y * C + x]) nb.push(d);
+      }
+      if (!nb.length) { stack.pop(); continue; }
+      d = nb[rint(r, nb.length)]; n = (Math.floor(cur / C) + DY[d]) * C + cur % C + DX[d];
+      cell[cur] |= BIT[d]; cell[n] |= OPP[d]; seen[n] = true; stack.push(n);
+    }
+    return { C: C, R: R, cell: cell, pos: 0, goal: C * R - 1, seen: { 0: 1 }, steps: 0 };
+  }
+  function mazeStart(lv) { MZ = mazeGen(lv); mazeDraw(); }
+  function mazeDraw() {
+    S.mode = "maze";
+    var C = MZ.C, R = MZ.R, cs = Math.floor(Math.min(560 / C, 600 / R)), W = C * cs, H = R * cs, s, i, x, y, k, px, py;
+    s = '<svg class="maze" xmlns="http://www.w3.org/2000/svg" width="' + (W + 8) + '" height="' + (H + 8) + '" viewBox="-4 -4 ' + (W + 8) + " " + (H + 8) + '">';
+    for (k in MZ.seen) { if (MZ.seen.hasOwnProperty(k) && +k !== MZ.pos) { x = (k % C + 0.5) * cs; y = (Math.floor(k / C) + 0.5) * cs; s += '<circle cx="' + x + '" cy="' + y + '" r="' + Math.max(2, cs * 0.08) + '" fill="#999"/>'; } }
+    var p = "";
+    for (i = 0; i < C * R; i++) {
+      x = (i % C) * cs; y = Math.floor(i / C) * cs;
+      if (!(MZ.cell[i] & 1)) p += "M" + x + " " + y + "h" + cs;
+      if (!(MZ.cell[i] & 8)) p += "M" + x + " " + y + "v" + cs;
+    }
+    p += "M0 " + H + "h" + W + "M" + W + " 0v" + H;
+    s += '<path d="' + p + '" stroke="#000" stroke-width="' + Math.max(3, Math.round(cs / 10)) + '" stroke-linecap="square" fill="none"/>';
+    function put(w, idx) { var sc = cs * 0.86 / 100; return '<g transform="translate(' + ((idx % C) * cs + cs * 0.07) + " " + (Math.floor(idx / C) * cs + cs * 0.07) + ") scale(" + sc + ')">' + ICON[w]() + "</g>"; }
+    s += put("nhà", MZ.goal) + put("gà", MZ.pos) + "</svg>";
+    app.innerHTML = topBar("Mê cung · Màn " + GM.lv, "glist") + '<div class="mzwrap">' + s + "</div>" +
+      '<table class="g arrows"><tr><td></td><td><button class="btn dark" data-act="mz" data-v="0">▲</button></td><td></td></tr>' +
+      '<tr><td><button class="btn dark" data-act="mz" data-v="3">◀</button></td><td><button class="btn" data-act="gplay" data-v="' + GM.lv + '">Chơi lại</button></td><td><button class="btn dark" data-act="mz" data-v="1">▶</button></td></tr>' +
+      '<tr><td></td><td><button class="btn dark" data-act="mz" data-v="2">▼</button></td><td></td></tr></table>';
+  }
+  // Đi theo hướng, tự đi tiếp dọc hành lang tới chỗ rẽ
+  function mazeMove(d) {
+    var C = MZ.C, BIT = [1, 2, 4, 8], DD = [-C, 1, C, -1], OPP = [2, 3, 0, 1], moved = false, guard = 0, i, open, nd;
+    while (MZ.cell[MZ.pos] & BIT[d]) {
+      MZ.pos += DD[d]; MZ.seen[MZ.pos] = 1; MZ.steps++; moved = true;
+      if (MZ.pos === MZ.goal || ++guard > 400) break;
+      open = 0; nd = -1;
+      for (i = 0; i < 4; i++) if (MZ.cell[MZ.pos] & BIT[i]) { open++; if (i !== OPP[d]) nd = i; }
+      if (open !== 2) break;
+      d = nd;
+    }
+    if (MZ.pos === MZ.goal) { gWin("Gà con đã về tới nhà!"); return; }
+    if (moved) mazeDraw();
+  }
+
+  // ----- Tìm điểm khác nhau -----
+  var DF = null, DF_MIR = ["gà", "cá", "vịt", "chim", "bút", "xe", "trăng", "chuối", "chuột", "voi"];
+  function diffGen(lv) {
+    var r = rng(lv * 104729 + 3), cols, rows, nd, kinds, n, i, a = [], b = [], pool = rshuf(r, ICON_WORDS), diffs = [], idx, k, w;
+    if (lv <= 10) { cols = 3; rows = 3; nd = 3; } else if (lv <= 25) { cols = 4; rows = 3; nd = 4; } else if (lv <= 40) { cols = 4; rows = 4; nd = 5; } else { cols = 5; rows = 4; nd = 6; }
+    kinds = lv <= 15 ? ["doi", "mat", "them"] : (lv <= 30 ? ["doi", "mat", "them", "nho"] : ["doi", "mat", "them", "nho", "lat", "lat"]);
+    n = cols * rows;
+    for (i = 0; i < n; i++) a.push(r() < 0.8 ? { w: pool[i % pool.length], m: 0, s: 1 } : null);
+    for (i = 0; i < n; i++) b.push(a[i] ? { w: a[i].w, m: 0, s: 1 } : null);
+    var order = rshuf(r, (function () { var o = [], j; for (j = 0; j < n; j++) o.push(j); return o; })());
+    for (i = 0; i < order.length && diffs.length < nd; i++) {
+      idx = order[i]; k = kinds[rint(r, kinds.length)];
+      if (k === "them" && a[idx]) k = "doi";
+      if (k !== "them" && !a[idx]) k = "them";
+      if (k === "lat" && DF_MIR.indexOf(a[idx].w) < 0) k = "nho";
+      if (k === "doi") { do { w = pool[rint(r, pool.length)]; } while (w === a[idx].w); b[idx] = { w: w, m: 0, s: 1 }; }
+      else if (k === "mat") b[idx] = null;
+      else if (k === "them") b[idx] = { w: pool[rint(r, pool.length)], m: 0, s: 1 };
+      else if (k === "nho") b[idx] = { w: a[idx].w, m: 0, s: 0.55 };
+      else b[idx] = { w: a[idx].w, m: 1, s: 1 };
+      diffs.push(idx);
+    }
+    return { cols: cols, rows: rows, a: a, b: b, diffs: diffs, found: {}, nf: 0, miss: 0, msg: "" };
+  }
+  function diffStart(lv) { DF = diffGen(lv); diffDraw(); }
+  function diffGrid(arr, tap) {
+    var cs = Math.floor(Math.min(112, 560 / DF.cols, 400 / DF.rows)), isz = cs - 18, h = '<table class="dfg" style="width:' + (cs * DF.cols + 12) + 'px"><tr>', i, o, inner;
+    for (i = 0; i < arr.length; i++) {
+      if (i > 0 && i % DF.cols === 0) h += "</tr><tr>";
+      o = arr[i];
+      inner = o ? ic(o.w, Math.round(isz * o.s)) : "";
+      if (o && o.m) inner = '<span class="mir">' + inner + "</span>";
+      inner = '<div class="dfc' + (DF.found[i] ? " found" : "") + '" style="height:' + cs + "px;line-height:" + cs + 'px">' + inner + "</div>";
+      h += "<td>" + (tap ? '<button class="dfb" data-act="dft" data-v="' + i + '">' + inner + "</button>" : inner) + "</td>";
+    }
+    return h + "</tr></table>";
+  }
+  function diffDraw() {
+    S.mode = "diff";
+    app.innerHTML = topBar("Tìm điểm khác nhau · Màn " + GM.lv, "glist") +
+      '<p class="sub">Tìm <b>' + DF.diffs.length + "</b> chỗ khác nhau. Chạm vào tranh dưới. Đã tìm: <b>" + DF.nf + "/" + DF.diffs.length + "</b></p>" +
+      '<div class="dfbox">' + diffGrid(DF.a, false) + "</div>" + '<div class="dfbox">' + diffGrid(DF.b, true) + "</div>" +
+      '<p class="fb">' + (DF.msg || "&nbsp;") + "</p>" +
+      '<table class="g"><tr><td><button class="btn" data-act="dfhint">Gợi ý</button></td><td><button class="btn" data-act="gplay" data-v="' + GM.lv + '">Chơi lại</button></td></tr></table>';
+  }
+  function diffTap(i) {
+    if (DF.diffs.indexOf(i) >= 0) {
+      if (!DF.found[i]) { DF.found[i] = 1; DF.nf++; DF.msg = pick(["Đúng rồi!", "Giỏi quá!", "Tìm ra rồi!"]); }
+      if (DF.nf === DF.diffs.length) { gWin("Bé tìm đủ " + DF.nf + " chỗ khác nhau!"); return; }
+    } else { DF.miss++; DF.msg = "Chỗ này giống nhau, tìm chỗ khác nhé."; }
+    diffDraw();
+  }
+  function diffHint() {
+    for (var j = 0; j < DF.diffs.length; j++) {
+      var i = DF.diffs[j];
+      if (!DF.found[i]) { DF.msg = "Gợi ý: hàng " + (Math.floor(i / DF.cols) + 1) + ", cột " + (i % DF.cols + 1) + "."; break; }
+    }
+    diffDraw();
+  }
+
   // ================= ĐỌC TRUYỆN =================
   // t: "tranh" (truyện tranh, mỗi trang 1 khung hình) hoặc "chu" (truyện chữ)
   // p: các trang [hình minh hoạ, lời]; q: câu hỏi [câu hỏi, đáp án đúng, sai, sai]
@@ -1603,6 +1776,12 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "backup") backup();
     else if (act === "monsters") monsters();
     else if (act === "read") readMenu();
+    else if (act === "games") gamesMenu();
+    else if (act === "glist") gameList(v || GM.g);
+    else if (act === "gplay") gPlay(parseInt(v, 10));
+    else if (act === "mz") { mazeMove(parseInt(v, 10)); scroll = false; }
+    else if (act === "dft") { diffTap(parseInt(v, 10)); scroll = false; }
+    else if (act === "dfhint") { diffHint(); scroll = false; }
     else if (act === "story") { RD.k = parseInt(v, 10); RD.pg = 0; storyPage(); }
     else if (act === "pgnext") { RD.pg++; storyPage(); }
     else if (act === "pgprev") { RD.pg--; storyPage(); }

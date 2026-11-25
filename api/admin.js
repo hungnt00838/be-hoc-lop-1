@@ -74,6 +74,7 @@ module.exports = async function handler(req, res) {
     if (body.action === "save") {
       const data = S.cleanData(body.data);
       if (!data) return S.send(res, 400, { ok: false, error: "Thiếu dữ liệu" });
+      if (body.data.gz === undefined && rec.data) { data.gz = rec.data.gz || 0; data.gd = rec.data.gd || 0; } // giữ màn trò chơi
       if (!Array.isArray(body.data.rd) && rec.data && Array.isArray(rec.data.rd)) data.rd = rec.data.rd; // giữ truyện đã đọc
       const newName = String(body.name || rec.name).normalize("NFC").trim().replace(/\s+/g, " ");
       if (!newName || newName.length > 30) return S.send(res, 400, { ok: false, error: "Tên không hợp lệ" });
