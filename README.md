@@ -30,3 +30,9 @@ python3 tools/build.py index.html
 - Mở `/admin.html` trên trang Vercel. Đặt biến môi trường `ADMIN_PASSWORD` trong Vercel (Settings → Environment Variables) rồi deploy lại.
 - Xem danh sách các bé; sửa sao từng chặng, hạt thóc, số lần cho gà ăn, nhãn dán; đổi tên; đặt lại ngày sinh; xoá bé.
 - API: `api/admin.js`. Phần đọc/ghi Blob dùng chung nằm trong `api/_store.js`.
+
+## Ảnh của bé
+
+- Trong game: nút "Ảnh của bé" ở trang chủ. Chụp hoặc chọn ảnh (trên điện thoại / máy tính bảng), game tự thu nhỏ (tối đa 1280px) rồi gửi lên.
+- Lưu trong Vercel Blob: `photos/<mã bé>/<thời điểm>.jpg` và ảnh nhỏ `<thời điểm>_t.jpg`. Mỗi bé một thư mục riêng, giữ nguyên khi đổi tên.
+- API: `api/photo.js` (bé đăng nhập bằng tên + ngày sinh). Trang admin xem, tải về và xoá ảnh của từng bé.

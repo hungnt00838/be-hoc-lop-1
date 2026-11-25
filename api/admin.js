@@ -42,8 +42,15 @@ module.exports = async function handler(req, res) {
     const rec = await S.readRecord(path);
     if (!rec) return S.send(res, 404, { ok: false, error: "Không tìm thấy bé này" });
 
+    if (body.action === "photos") return S.send(res, 200, { ok: true, photos: rec.id ? await S.photoList(rec.id, true) : [] });
+    if (body.action === "photo") {
+      const img = rec.id ? await S.photoGet(rec.id, Number(body.ts) || 0) : null;
+      return img ? S.send(res, 200, { ok: true, image: img }) : S.send(res, 404, { ok: false, error: "Không tìm thấy ảnh" });
+    }
+    if (body.action === "delphoto") { if (rec.id) await S.photoDel(rec.id, Number(body.ts) || 0); return S.send(res, 200, { ok: true }); }
     if (body.action === "delete") {
       await S.deleteRecord(path);
+      if (rec.id) { const ph = await S.photoList(rec.id, false); for (const p of ph) await S.photoDel(rec.id, p.ts); }
       return S.send(res, 200, { ok: true });
     }
 
@@ -58,7 +65,7 @@ module.exports = async function handler(req, res) {
       if (renamed && !dob) return S.send(res, 400, { ok: false, error: "Đổi tên thì cần nhập lại ngày sinh" });
       const newPath = renamed ? S.pathFor(newName) : path;
       if (renamed && await S.readRecord(newPath)) return S.send(res, 409, { ok: false, error: "Đã có bé khác tên này" });
-      const next = { name: newName, pin: dob ? S.pinHash(newName, dob) : rec.pin, data, created: rec.created || Date.now(), updated: Date.now() };
+      const next = { name: newName, pin: dob ? S.pinHash(newName, dob) : rec.pin, id: rec.id, data, created: rec.created || Date.now(), updated: Date.now() };
       await S.writeRecord(newPath, next);
       if (renamed) await S.deleteRecord(path);
       return S.send(res, 200, { ok: true, player: summary(newPath, next) });

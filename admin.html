@@ -32,6 +32,9 @@ tr.sel td { background: #fff7d6; }
 .zone .st { display: flex; justify-content: space-between; align-items: center; margin: 4px 0; }
 .stk { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; }
 .stk label { display: flex; gap: 6px; align-items: center; color: #111; font-size: 15px; margin: 0; }
+.phs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.phs button { padding: 4px; min-height: 0; font-weight: 400; font-size: 13px; }
+.phs img { display: block; width: 100%; height: auto; }
 .msg { margin: 10px 0 0; font-weight: 600; min-height: 24px; }
 .msg.err { color: #b00020; }
 .muted { color: #666; font-size: 14px; }
@@ -79,6 +82,11 @@ tr.sel td { background: #fff7d6; }
     <div class="stk" id="mon"></div>
     <h3>Nhãn dán</h3>
     <div class="stk" id="stk"></div>
+    <h3>Ảnh của bé</h3>
+    <div id="phMsg" class="muted"></div>
+    <div class="phs" id="phs"></div>
+    <div id="phBig" class="hide card" style="margin-top:12px"><img id="phImg" alt="" style="max-width:100%;display:block;margin:0 auto 10px">
+      <div class="row"><button id="phClose">Đóng ảnh</button><a id="phDl" download="anh.jpg"><button>Tải về</button></a><span style="flex:1"></span><button class="danger" id="phDel">Xoá ảnh</button></div></div>
     <div class="row" style="margin-top:18px">
       <button class="pri" id="save">Lưu thay đổi</button>
       <button id="cancel">Đóng</button>
@@ -153,9 +161,35 @@ tr.sel td { background: #fff7d6; }
     $("stk").innerHTML = STICKERS.map((s, i) => '<label><input type="checkbox" data-stk="' + i + '"' + (p.data.stk[i] ? " checked" : "") + "> " + esc(s) + "</label>").join("");
     $("mon").innerHTML = MONS.map((s, i) => '<label><input type="checkbox" data-mon="' + i + '"' + (p.data.mon && p.data.mon[i] ? " checked" : "") + "> " + (i + 1) + ". " + esc(s) + "</label>").join("");
     $("del").classList.remove("arm"); $("del").textContent = "Xoá bé này";
-    msg("editMsg", ""); show("edit", true); render();
+    msg("editMsg", ""); show("edit", true); render(); loadPhotos();
     $("edit").scrollIntoView({ behavior: "smooth", block: "start" });
   }
+  let phList = [], phCur = null;
+  async function loadPhotos() {
+    $("phs").innerHTML = ""; show("phBig", false); $("phMsg").textContent = "Đang tải ảnh...";
+    const path = cur.path;
+    try {
+      const j = await api({ action: "photos", path });
+      if (!cur || cur.path !== path) return;
+      phList = j.photos;
+      $("phMsg").textContent = phList.length ? phList.length + " ảnh" : "Chưa có ảnh nào.";
+      $("phs").innerHTML = phList.map((p, i) => '<button data-ph="' + i + '">' + (p.thumb ? '<img src="' + p.thumb + '" alt="">' : "?") + fmt(p.ts) + "</button>").join("");
+    } catch (e) { $("phMsg").textContent = "Không tải được ảnh: " + e.message; }
+  }
+  async function openPhoto(i) {
+    phCur = phList[i]; $("phImg").src = phCur.thumb || ""; show("phBig", true);
+    $("phDel").classList.remove("arm"); $("phDel").textContent = "Xoá ảnh";
+    try { const j = await api({ action: "photo", path: cur.path, ts: phCur.ts }); $("phImg").src = j.image; $("phDl").href = j.image; $("phDl").download = "anh-" + phCur.ts + ".jpg"; }
+    catch (e) { $("phMsg").textContent = e.message; }
+  }
+  async function delPhoto() {
+    const b = $("phDel");
+    if (!b.classList.contains("arm")) { b.classList.add("arm"); b.textContent = "Bấm lần nữa để xoá"; return; }
+    try { await api({ action: "delphoto", path: cur.path, ts: phCur.ts }); loadPhotos(); } catch (e) { $("phMsg").textContent = e.message; }
+  }
+  $("phs").onclick = ev => { const b = ev.target.closest("button[data-ph]"); if (b) openPhoto(+b.dataset.ph); };
+  $("phClose").onclick = () => show("phBig", false);
+  $("phDel").onclick = delPhoto;
   function setAll(fn) { document.querySelectorAll("[data-st]").forEach(s => { s.value = String(fn(+s.value)); }); }
   function collect() {
     const st = [], stk = {};

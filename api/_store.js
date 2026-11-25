@@ -76,4 +76,44 @@ function errOut(res, e) {
     hasToken: !!process.env.BLOB_READ_WRITE_TOKEN, access: ACCESS
   });
 }
-module.exports = { STAGES, normName, validDob, sha, pathFor, pinHash, cleanData, readRecord, writeRecord, deleteRecord, listPaths, send, readBody, errOut };
+// ----- Ảnh của bé: photos/<id bé>/<thời điểm>.jpg và <thời điểm>_t.jpg (ảnh nhỏ) -----
+function newId() { return crypto.randomBytes(12).toString("hex"); }
+async function ensureId(path, rec) {
+  if (rec.id) return rec.id;
+  rec.id = newId(); await writeRecord(path, rec); return rec.id;
+}
+async function readB64(p) {
+  const r = await get(p, { access: ACCESS, useCache: false });
+  if (!r || r.statusCode !== 200) return null;
+  return Buffer.from(await new Response(r.stream).arrayBuffer()).toString("base64");
+}
+async function photoList(id, withThumbs) {
+  const out = []; let cursor;
+  do {
+    const r = await list({ prefix: "photos/" + id + "/", limit: 1000, cursor });
+    for (const b of r.blobs) { const m = /\/(\d+)_t\.jpg$/.exec(b.pathname); if (m) out.push({ ts: +m[1] }); }
+    cursor = r.hasMore ? r.cursor : undefined;
+  } while (cursor);
+  out.sort((a, b) => b.ts - a.ts);
+  if (withThumbs) {
+    const top = out.slice(0, 60);
+    await Promise.all(top.map(async o => { const b = await readB64("photos/" + id + "/" + o.ts + "_t.jpg"); o.thumb = b ? "data:image/jpeg;base64," + b : null; }));
+    return top;
+  }
+  return out;
+}
+async function photoGet(id, ts) { const b = await readB64("photos/" + id + "/" + Math.floor(ts) + ".jpg"); return b ? "data:image/jpeg;base64," + b : null; }
+function jpegBuf(dataUrl, maxBytes) {
+  const pre = "data:image/jpeg;base64,";
+  if (typeof dataUrl !== "string" || dataUrl.indexOf(pre) !== 0) return null;
+  const buf = Buffer.from(dataUrl.slice(pre.length), "base64");
+  if (!buf.length || buf.length > maxBytes || buf[0] !== 0xff || buf[1] !== 0xd8) return null;
+  return buf;
+}
+async function photoPut(id, ts, full, thumb) {
+  const o = { access: ACCESS, addRandomSuffix: false, allowOverwrite: true, contentType: "image/jpeg" };
+  await put("photos/" + id + "/" + ts + ".jpg", full, o);
+  await put("photos/" + id + "/" + ts + "_t.jpg", thumb, o);
+}
+async function photoDel(id, ts) { ts = Math.floor(ts); await del(["photos/" + id + "/" + ts + ".jpg", "photos/" + id + "/" + ts + "_t.jpg"]); }
+module.exports = { newId, ensureId, photoList, photoGet, photoPut, photoDel, jpegBuf, STAGES, normName, validDob, sha, pathFor, pinHash, cleanData, readRecord, writeRecord, deleteRecord, listPaths, send, readBody, errOut };

@@ -28,7 +28,7 @@ module.exports = async function handler(req, res) {
     if (body.action === "save") {
       const data = cleanData(body.data);
       if (!data) return send(res, 400, { ok: false, error: "Thiếu dữ liệu" });
-      const next = { name: rec ? rec.name : name, pin: pinHash(name, pin), data, created: rec ? rec.created : Date.now(), updated: Date.now() };
+      const next = { name: rec ? rec.name : name, pin: pinHash(name, pin), id: rec ? rec.id : undefined, data, created: rec ? rec.created : Date.now(), updated: Date.now() };
       await writeRecord(path, next);
       return send(res, 200, { ok: true, updated: next.updated });
     }
