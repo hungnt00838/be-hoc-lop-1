@@ -66,6 +66,17 @@ tr.sel td { background: #fff7d6; }
     </table></div>
   </section>
 
+  <section id="setBox" class="card hide">
+    <h2 style="margin-top:0">Tự xoá ảnh</h2>
+    <div class="row">
+      <div><label for="sDays">Tự xoá ảnh cũ hơn (ngày)</label><input id="sDays" type="number" min="0" max="3650" style="width:140px"></div>
+      <div><button class="pri" id="sSave">Lưu cài đặt</button></div>
+      <div><button id="sNow">Xoá ngay ảnh quá hạn</button></div>
+    </div>
+    <p class="muted">Nhập 0 để không bao giờ tự xoá. Máy chủ tự dọn ảnh quá hạn mỗi ngày lúc 3 giờ sáng (giờ Việt Nam), và cả khi bé mở mục "Ảnh của bé".</p>
+    <p class="msg" id="sMsg"></p>
+  </section>
+
   <section id="edit" class="card hide">
     <h2 style="margin-top:0" id="editTitle">Sửa</h2>
     <div class="row">
@@ -127,12 +138,28 @@ tr.sel td { background: #fff7d6; }
       players = j.players;
       try { sessionStorage.setItem("adminpw", PW); } catch (e) {}
       show("login", false); show("listBox", true); show("logout", true); msg("loginMsg", "");
-      render();
+      render(); loadSettings();
     } catch (e) {
-      show("login", true); show("listBox", false); show("edit", false); msg("loginMsg", e.message, true);
+      show("login", true); show("setBox", false); show("listBox", false); show("edit", false); msg("loginMsg", e.message, true);
       if (e.status === 401) { PW = ""; try { sessionStorage.removeItem("adminpw"); } catch (x) {} }
     }
   }
+  async function loadSettings() {
+    try { const j = await api({ action: "settings" }); $("sDays").value = j.settings.photoDays; show("setBox", true); } catch (e) { msg("sMsg", e.message, true); }
+  }
+  $("sSave").onclick = async () => {
+    msg("sMsg", "Đang lưu...");
+    try {
+      const j = await api({ action: "setSettings", settings: { photoDays: +$("sDays").value || 0 } });
+      $("sDays").value = j.settings.photoDays;
+      msg("sMsg", (j.settings.photoDays ? "Ảnh sẽ tự xoá sau " + j.settings.photoDays + " ngày." : "Đã tắt tự xoá ảnh.") + " Vừa xoá " + j.removed + " file ảnh quá hạn.");
+      if (cur) loadPhotos();
+    } catch (e) { msg("sMsg", e.message, true); }
+  };
+  $("sNow").onclick = async () => {
+    msg("sMsg", "Đang dọn...");
+    try { const j = await api({ action: "cleanup" }); msg("sMsg", "Đã xoá " + j.removed + " file ảnh quá hạn."); if (cur) loadPhotos(); } catch (e) { msg("sMsg", e.message, true); }
+  };
   function render() {
     const q = $("q").value.trim().toLowerCase();
     const list = players.filter(p => !q || p.name.toLowerCase().includes(q));

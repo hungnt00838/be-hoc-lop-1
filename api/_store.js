@@ -116,4 +116,28 @@ async function photoPut(id, ts, full, thumb) {
   await put("photos/" + id + "/" + ts + "_t.jpg", thumb, o);
 }
 async function photoDel(id, ts) { ts = Math.floor(ts); await del(["photos/" + id + "/" + ts + ".jpg", "photos/" + id + "/" + ts + "_t.jpg"]); }
-module.exports = { newId, ensureId, photoList, photoGet, photoPut, photoDel, jpegBuf, STAGES, normName, validDob, sha, pathFor, pinHash, cleanData, readRecord, writeRecord, deleteRecord, listPaths, send, readBody, errOut };
+// ----- Cài đặt chung + tự xoá ảnh cũ -----
+const SETTINGS = "settings/config.json";
+const DEFAULT_SETTINGS = { photoDays: 30 };
+async function getSettings() {
+  try { const r = await readRecord(SETTINGS); return Object.assign({}, DEFAULT_SETTINGS, r || {}); } catch (e) { return Object.assign({}, DEFAULT_SETTINGS); }
+}
+async function setSettings(s) {
+  const days = Math.max(0, Math.min(3650, Math.floor(Number(s.photoDays) || 0)));
+  const next = Object.assign({}, await getSettings(), { photoDays: days });
+  await writeRecord(SETTINGS, next); return next;
+}
+// Xoá ảnh cũ hơn photoDays ngày. prefix: "photos/" (tất cả) hoặc "photos/<id>/" (một bé)
+async function cleanupPhotos(prefix, days) {
+  if (days === undefined) days = (await getSettings()).photoDays;
+  if (!days) return 0;
+  const cutoff = Date.now() - days * 86400000, old = []; let cursor;
+  do {
+    const r = await list({ prefix: prefix || "photos/", limit: 1000, cursor });
+    for (const b of r.blobs) { const m = /\/(\d+)(_t)?\.jpg$/.exec(b.pathname); if (m && +m[1] < cutoff) old.push(b.pathname); }
+    cursor = r.hasMore ? r.cursor : undefined;
+  } while (cursor);
+  for (let i = 0; i < old.length; i += 100) await del(old.slice(i, i + 100));
+  return old.length;
+}
+module.exports = { getSettings, setSettings, cleanupPhotos, newId, ensureId, photoList, photoGet, photoPut, photoDel, jpegBuf, STAGES, normName, validDob, sha, pathFor, pinHash, cleanData, readRecord, writeRecord, deleteRecord, listPaths, send, readBody, errOut };

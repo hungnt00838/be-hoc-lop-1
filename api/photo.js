@@ -16,7 +16,11 @@ module.exports = async function handler(req, res) {
     if (rec.pin !== S.pinHash(name, pin)) return S.send(res, 403, { ok: false, error: "Tên hoặc ngày sinh chưa đúng" });
     const id = await S.ensureId(path, rec);
 
-    if (body.action === "list") return S.send(res, 200, { ok: true, photos: await S.photoList(id, true) });
+    if (body.action === "list") {
+      const st = await S.getSettings();
+      await S.cleanupPhotos("photos/" + id + "/", st.photoDays);
+      return S.send(res, 200, { ok: true, photos: await S.photoList(id, true), photoDays: st.photoDays });
+    }
     if (body.action === "get") {
       const img = await S.photoGet(id, Number(body.ts) || 0);
       return img ? S.send(res, 200, { ok: true, image: img }) : S.send(res, 404, { ok: false, error: "Không tìm thấy ảnh" });

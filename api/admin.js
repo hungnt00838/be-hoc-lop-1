@@ -37,6 +37,14 @@ module.exports = async function handler(req, res) {
       return S.send(res, 200, { ok: true, players });
     }
 
+    if (body.action === "settings") return S.send(res, 200, { ok: true, settings: await S.getSettings() });
+    if (body.action === "setSettings") {
+      const settings = await S.setSettings(body.settings || {});
+      const removed = await S.cleanupPhotos("photos/", settings.photoDays);
+      return S.send(res, 200, { ok: true, settings, removed });
+    }
+    if (body.action === "cleanup") return S.send(res, 200, { ok: true, removed: await S.cleanupPhotos("photos/") });
+
     const path = String(body.path || "");
     if (!/^players\/[0-9a-f]{32}\.json$/.test(path)) return S.send(res, 400, { ok: false, error: "Đường dẫn không hợp lệ" });
     const rec = await S.readRecord(path);

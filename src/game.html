@@ -84,6 +84,7 @@ table.mons .btn { font-size: 24px; min-height: 150px; padding: 8px 4px; }
 .filebtn input { position: absolute; left: 0; top: 0; width: 100%; height: 100%; opacity: 0; font-size: 200px; cursor: pointer; }
 .btn.ph { padding: 6px; min-height: 0; font-size: 18px; }
 .btn.ph img { display: block; width: 100%; height: auto; }
+img.lastph { max-width: 60%; height: auto; border: 3px solid #000; }
 img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
 .gift { font-size: 100px; text-align: center; line-height: 1.1; }
 </style>
@@ -1103,7 +1104,11 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     h += '<label class="btn dark filebtn">Chụp ảnh hoặc chọn ảnh<input id="cam" type="file" accept="image/*" capture="environment"></label>' +
       '<p class="note">Máy Kindle không có máy ảnh: hãy chụp bằng điện thoại hoặc máy tính bảng, đăng nhập đúng tên bé. Ảnh sẽ hiện ở đây trên mọi máy.</p>';
     if (PH.msg) h += '<div class="fb">' + PH.msg + "</div>";
+    if (PH.last) h += '<div class="pick"><div class="pic"><img class="lastph" src="' + PH.last.thumb + '" alt=""></div>' +
+      '<table class="g"><tr><td><button class="btn dark" data-act="undophoto">Chụp nhầm? Xoá ngay</button></td>' +
+      '<td><button class="btn" data-act="keepphoto">Giữ ảnh này</button></td></tr></table></div>';
     if (PH.list === null) { h += '<p class="sub">Đang tải ảnh...</p>'; app.innerHTML = h; loadPhotos(); return; }
+    if (PH.days) h += '<p class="note">Ảnh tự xoá sau ' + PH.days + " ngày.</p>";
     if (!PH.list.length) h += '<p class="sub">Chưa có ảnh nào.</p>';
     else {
       h += '<p class="sub">' + PH.list.length + ' ảnh. Chạm vào ảnh để xem lớn.</p><table class="g photos"><tr>';
@@ -1122,7 +1127,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     papi({ action: "list" }, function (err, r) {
       if (S.mode !== "photos") return;
       if (err) { PH.list = []; photos("Không tải được ảnh: " + err.msg); return; }
-      PH.list = r.photos; photos();
+      PH.list = r.photos; PH.days = r.photoDays; photos();
     });
   }
   function viewPhoto(i) {
@@ -1149,6 +1154,15 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       PH.list.splice(PH.cur, 1); photos("Đã xoá ảnh.");
     });
   }
+  function undoPhoto(btn) {
+    if (!PH.last) return;
+    var ts = PH.last.ts;
+    btn.innerHTML = "Đang xoá...";
+    papi({ action: "delete", ts: ts }, function (err) {
+      if (err) { photos("Không xoá được: " + err.msg); return; }
+      PH.last = null; PH.list = null; photos("Đã xoá ảnh chụp nhầm.");
+    });
+  }
   function shrink(img, max, q) {
     var w = img.width, hh = img.height, s = Math.min(1, max / Math.max(w, hh)), cv = document.createElement("canvas");
     cv.width = Math.max(1, Math.round(w * s)); cv.height = Math.max(1, Math.round(hh * s));
@@ -1166,9 +1180,9 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
         var full, thumb;
         try { full = shrink(img, 1280, 0.82); thumb = shrink(img, 260, 0.7); } catch (e) { photos("Không đọc được ảnh này."); return; }
         photos("Đang gửi ảnh lên...");
-        papi({ action: "upload", image: full, thumb: thumb }, function (err) {
+        papi({ action: "upload", image: full, thumb: thumb }, function (err, r) {
           if (err) { photos("Chưa gửi được ảnh: " + err.msg); return; }
-          PH.list = null; photos("Đã lưu ảnh!");
+          PH.last = { ts: r.ts, thumb: thumb }; PH.list = null; photos("Đã lưu ảnh!");
         });
       };
       img.onerror = function () { photos("Không đọc được ảnh này."); };
@@ -1198,8 +1212,10 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     else if (act === "setname") setName();
     else if (act === "backup") backup();
     else if (act === "monsters") monsters();
-    else if (act === "photos") { if (S.mode !== "photo1") PH.list = null; PH.msg = ""; photos(); }
+    else if (act === "photos") { if (S.mode !== "photo1") { PH.list = null; PH.last = null; } PH.msg = ""; photos(); }
     else if (act === "photo") { viewPhoto(parseInt(v, 10)); }
+    else if (act === "undophoto") { undoPhoto(b); scroll = false; }
+    else if (act === "keepphoto") { PH.last = null; PH.msg = ""; photos(); }
     else if (act === "delphoto") { delPhoto(b); scroll = false; }
     else if (act === "fight") fight(parseInt(v, 10));
     else if (act === "bnext") battleNext();
@@ -1243,7 +1259,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     if (el && (el.id === "nm" || el.id === "dd" || el.id === "mm" || el.id === "yy") && (ev.keyCode === 13 || ev.which === 13)) setName();
     if (el && el.id === "code" && (ev.keyCode === 13 || ev.which === 13)) restore();
   };
-  window.__lop1 = { getS: function () { return S; }, MON: MON, monSVG: monSVG, makeCode: makeCode, readCode: readCode, getP: function () { return P; },  mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
+  window.__lop1 = { getS: function () { return S; }, PH: PH, papi: papi, MON: MON, monSVG: monSVG, makeCode: makeCode, readCode: readCode, getP: function () { return P; },  mathQ: mathQ, tvQ: tvQ, tvDS: tvDS, mathDS: mathDS, ochuQ: ochuQ, xepQ: xepQ, pairsFor: pairsFor, AW: AW, analyze: analyze, withTone: withTone, STAGES: STAGES, genQ: genQ, petSVG: petSVG };
   var last = lsGet("lop1_last");
   if (last && has(players(), last) && (!ONLINE || pins()[last])) doLogin(last, pins()[last]); else nameScreen();
 })();

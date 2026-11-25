@@ -36,3 +36,9 @@ python3 tools/build.py index.html
 - Trong game: nút "Ảnh của bé" ở trang chủ. Chụp hoặc chọn ảnh (trên điện thoại / máy tính bảng), game tự thu nhỏ (tối đa 1280px) rồi gửi lên.
 - Lưu trong Vercel Blob: `photos/<mã bé>/<thời điểm>.jpg` và ảnh nhỏ `<thời điểm>_t.jpg`. Mỗi bé một thư mục riêng, giữ nguyên khi đổi tên.
 - API: `api/photo.js` (bé đăng nhập bằng tên + ngày sinh). Trang admin xem, tải về và xoá ảnh của từng bé.
+
+### Tự xoá ảnh
+
+- Trang admin → "Tự xoá ảnh": đặt số ngày (mặc định 30, 0 = không tự xoá), có nút "Xoá ngay ảnh quá hạn".
+- `api/cleanup.js` chạy mỗi ngày bằng Vercel Cron (`vercel.json`, 20:00 UTC = 3:00 giờ Việt Nam). Nếu đặt biến `CRON_SECRET`, Vercel tự gửi kèm khi gọi cron.
+- Trong game, ngay sau khi chụp có nút "Chụp nhầm? Xoá ngay".
