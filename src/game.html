@@ -678,7 +678,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     if (say && say1) say1.innerHTML = PET_SAY[l];
     function step() {
       var g = document.getElementById("petg");
-      if (!g || my !== WIG.n) return;
+      if (!g || !g.setAttribute || my !== WIG.n) return;
       if (frames[i]) g.setAttribute("transform", frames[i]); else g.removeAttribute("transform");
       i++;
       if (i < frames.length) WIG.t = setTimeout(step, 380);
