@@ -75,8 +75,9 @@ table.dob .inp { margin: 0; }
 .fobj svg { vertical-align: middle; }
 .fobj.found { border-color: #000; background: #e8e8e8; }
 .mzwrap { text-align: center; margin: 6px 0; }
-table.arrows { width: 70%; margin: 0 auto; }
-table.arrows .btn { font-size: 34px; min-height: 76px; padding: 4px; }
+table.arrows { width: 100%; margin: 0 -10px; }
+table.arrows .btn { font-size: 34px; min-height: 0; height: 74px; padding: 4px; margin: 0; }
+.mzwrap { margin: 2px 0 0 !important; }
 .dfbox { text-align: center; margin: 4px 0 8px; }
 table.dfg { border: 4px solid #000; border-collapse: collapse; margin: 0 auto; table-layout: fixed; }
 table.dfg td { padding: 0; text-align: center; vertical-align: middle; }
@@ -1655,7 +1656,9 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function mazeStart(lv) { MZ = mazeGen(lv); mazeDraw(); }
   function mazeDraw() {
     S.mode = "maze";
-    var C = MZ.C, R = MZ.R, cs = Math.floor(Math.min(560 / C, 600 / R)), W = C * cs, H = R * cs, s, i, x, y, k, px, py;
+    var vw = window.innerWidth || document.documentElement.clientWidth || 600, vh = window.innerHeight || document.documentElement.clientHeight || 800;
+    var C = MZ.C, R = MZ.R, cs = Math.floor(Math.min((Math.min(vw, 760) - 40) / C, (vh - 240) / R, 90)), W, H, s, i, x, y, k, px, py;
+    cs = Math.max(cs, 18); W = C * cs; H = R * cs;
     s = '<svg class="maze" xmlns="http://www.w3.org/2000/svg" width="' + (W + 8) + '" height="' + (H + 8) + '" viewBox="-4 -4 ' + (W + 8) + " " + (H + 8) + '">';
     for (k in MZ.seen) { if (MZ.seen.hasOwnProperty(k) && +k !== MZ.pos) { x = (k % C + 0.5) * cs; y = (Math.floor(k / C) + 0.5) * cs; s += '<circle cx="' + x + '" cy="' + y + '" r="' + Math.max(2, cs * 0.08) + '" fill="#999"/>'; } }
     var p = "";
@@ -1668,10 +1671,12 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     s += '<path d="' + p + '" stroke="#000" stroke-width="' + Math.max(3, Math.round(cs / 10)) + '" stroke-linecap="square" fill="none"/>';
     function put(w, idx) { var sc = cs * 0.86 / 100; return '<g transform="translate(' + ((idx % C) * cs + cs * 0.07) + " " + (Math.floor(idx / C) * cs + cs * 0.07) + ") scale(" + sc + ')">' + ICON[w]() + "</g>"; }
     s += put("nhà", MZ.goal) + put("gà", MZ.pos) + "</svg>";
-    app.innerHTML = topBar("Mê cung · Màn " + GM.lv, "glist") + '<div class="mzwrap">' + s + "</div>" +
-      '<table class="g arrows"><tr><td></td><td><button class="btn dark" data-act="mz" data-v="0">▲</button></td><td></td></tr>' +
-      '<tr><td><button class="btn dark" data-act="mz" data-v="3">◀</button></td><td><button class="btn" data-act="gplay" data-v="' + GM.lv + '">Chơi lại</button></td><td><button class="btn dark" data-act="mz" data-v="1">▶</button></td></tr>' +
-      '<tr><td></td><td><button class="btn dark" data-act="mz" data-v="2">▼</button></td><td></td></tr></table>';
+    app.innerHTML = '<div class="top"><span class="l"><b>' + nm() + "</b> · Mê cung · Màn " + GM.lv + '</span><span class="r">' +
+      '<button class="btn small" data-act="gplay" data-v="' + GM.lv + '">Chơi lại</button> <button class="btn small" data-act="glist">Chọn màn</button></span></div>' +
+      '<div class="mzwrap">' + s + "</div>" +
+      '<table class="g arrows"><tr><td><button class="btn dark" data-act="mz" data-v="3">◀</button></td>' +
+      '<td><button class="btn dark" data-act="mz" data-v="0">▲</button></td><td><button class="btn dark" data-act="mz" data-v="2">▼</button></td>' +
+      '<td><button class="btn dark" data-act="mz" data-v="1">▶</button></td></tr></table>';
   }
   // Đi theo hướng, tự đi tiếp dọc hành lang tới chỗ rẽ
   function mazeMove(d) {
