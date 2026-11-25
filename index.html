@@ -72,9 +72,9 @@ table.cards .ic { margin: 0; }
 .arena td.side.r { text-align: right; padding-right: 8px; }
 .hero { position: relative; display: inline-block; }
 .hero img { display: block; }
-.hero .fx { position: absolute; right: -42%; top: 0; }
+.hero .fx { position: absolute; left: -42%; top: 0; }
 .hero.hurt img { opacity: 0.55; }
-.hero.hurt .fx { right: -10%; top: -6%; }
+.hero.hurt .fx { left: -10%; top: -6%; }
 .arena td.vs { width: 14%; font-size: 30px; font-weight: bold; vertical-align: middle; }
 .arena .mname { font-size: 22px; }
 .mname { font-size: 28px; font-weight: bold; }
@@ -1000,12 +1000,13 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function heroSVG(size, state) {
     var w = Math.round(size * 824 / 980), ov = "";
     if (state === "atk") ov = '<svg class="fx" xmlns="http://www.w3.org/2000/svg" width="' + Math.round(size * 0.5) + '" height="' + size + '" viewBox="0 0 50 100">' +
-      '<path d="M8 20 Q46 45 10 85 M2 32 Q34 50 4 74" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/></svg>';
+      '<path d="M42 20 Q4 45 40 85 M48 32 Q16 50 46 74" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/></svg>';
     if (state === "hurt") ov = '<svg class="fx" xmlns="http://www.w3.org/2000/svg" width="' + Math.round(size * 0.45) + '" height="' + Math.round(size * 0.45) + '" viewBox="0 0 50 50">' +
       '<polygon points="25,2 30,14 44,8 37,20 49,26 36,30 41,44 28,37 22,49 18,36 4,40 12,28 2,18 15,16 12,4" fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round"/>' +
       '<text x="25" y="30" font-size="12" font-weight="bold" text-anchor="middle" font-family="VNSans, sans-serif">ÁI</text></svg>';
     return '<span class="hero' + (state === "hurt" ? " hurt" : "") + '"><img src="' + KNIGHT + '" width="' + w + '" height="' + size + '" alt="">' + ov + "</span>";
   }
+  function nextMon() { for (var i = 0; i < MON.length; i++) { if (!monBeaten(i)) return i; } return MON.length - 1; }
   function monBeaten(i) { return P.mon && P.mon[i] ? true : false; }
   function monUnlocked(i) { return i === 0 || monBeaten(i - 1); }
   function hpBar(n, max) { var s = "", i; for (i = 0; i < max; i++) s += i < n ? "■" : "□"; return s; }
@@ -1013,7 +1014,8 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
 
   function monsters() {
     S.mode = "";
-    var h = topBar("Đánh quái vật") + "<h1>Đánh quái vật</h1>" + '<div class="pic">' + heroSVG(150, "idle") + "</div>" +
+    var h = topBar("Đánh quái vật") + "<h1>Đánh quái vật</h1>" + '<table class="arena"><tr><td class="side l">' + monSVG(nextMon(), 130, "") + '<div class="mname">' + MON[nextMon()].n +
+      '</div></td><td class="vs">VS</td><td class="side r">' + heroSVG(150, "idle") + '<div class="mname">' + nm() + "</div></td></tr></table>" +
       '<p class="sub">Trả lời đúng để tấn công. Trả lời sai thì quái vật đánh lại, mất 1 trái tim. Thắng quái vật này để mở quái vật tiếp theo.</p><table class="g mons"><tr>', i;
     for (i = 0; i < MON.length; i++) {
       if (i > 0 && i % 2 === 0) h += "</tr><tr>";
@@ -1035,9 +1037,9 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function showBattle() {
     var m = MON[S.mon], q = S.q, done = S.chosen >= 0, h, i, cls, cols = q.opts.length === 3 ? 3 : 2;
     h = '<div class="top"><span class="l"><b>' + nm() + '</b> · Đánh quái vật</span><span class="r"><button class="btn small" data-act="monsters">Bỏ chạy</button></span></div>';
-    h += '<table class="arena"><tr><td class="side l">' + heroSVG(170, S.state === "hit" ? "atk" : (S.state === "hurt" ? "hurt" : "idle")) +
-      '<div class="mname">' + nm() + '</div><div class="hearts">' + hearts(S.php) + '</div></td><td class="vs">VS</td><td class="side r">' +
-      monSVG(S.mon, 150, S.state === "hit" ? "hit" : "") + '<div class="mname">' + m.n + '</div><div class="hp">' + hpBar(S.mhp, m.hp) + "</div></td></tr></table>";
+    h += '<table class="arena"><tr><td class="side l">' + monSVG(S.mon, 150, S.state === "hit" ? "hit" : "") + '<div class="mname">' + m.n + '</div><div class="hp">' + hpBar(S.mhp, m.hp) +
+      '</div></td><td class="vs">VS</td><td class="side r">' + heroSVG(170, S.state === "hit" ? "atk" : (S.state === "hurt" ? "hurt" : "idle")) +
+      '<div class="mname">' + nm() + '</div><div class="hearts">' + hearts(S.php) + "</div></td></tr></table>";
     h += '<div class="q">' + q.text + '</div><table class="g opts"><tr>';
     for (i = 0; i < q.opts.length; i++) {
       if (i > 0 && i % cols === 0) h += "</tr><tr>";
@@ -1070,7 +1072,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       first = !monBeaten(i); bonus = MON[i].hp;
       if (!P.mon) P.mon = [];
       P.mon[i] = 1; P.seeds += bonus; save();
-      app.innerHTML = "<h1>Chiến thắng!</h1>" + '<div class="pic">' + heroSVG(170, "idle") + " &nbsp; " + monSVG(i, 150, "ko") + "</div>" +
+      app.innerHTML = "<h1>Chiến thắng!</h1>" + '<div class="pic">' + monSVG(i, 150, "ko") + " &nbsp; " + heroSVG(170, "idle") + "</div>" +
         "<h2>" + nm() + " đã đánh bại " + MON[i].n + "!</h2>" +
         '<p class="sub">Trả lời đúng ' + S.got + " câu. Thưởng thêm <b>" + bonus + " hạt thóc</b>. Đang có " + P.seeds + " hạt.</p>" +
         (first && i + 1 < MON.length ? '<p class="sub"><b>Đã mở quái vật mới: ' + MON[i + 1].n + "!</b></p>" : "") +
@@ -1081,7 +1083,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     }
     if (S.php <= 0) {
       save();
-      app.innerHTML = "<h1>Hết trái tim rồi!</h1>" + '<div class="pic">' + heroSVG(170, "hurt") + " &nbsp; " + monSVG(i, 150, "") + "</div>" +
+      app.innerHTML = "<h1>Hết trái tim rồi!</h1>" + '<div class="pic">' + monSVG(i, 150, "") + " &nbsp; " + heroSVG(170, "hurt") + "</div>" +
         "<h2>" + MON[i].n + " còn " + S.mhp + " máu. Mình luyện thêm rồi đánh lại nhé, " + nm() + "!</h2>" +
         '<p class="sub">Trả lời đúng ' + S.got + " câu, được " + S.got + " hạt thóc.</p>" +
         '<button class="btn dark" data-act="fight" data-v="' + i + '">Đánh lại</button><button class="btn" data-act="monsters">Danh sách quái vật</button>';
