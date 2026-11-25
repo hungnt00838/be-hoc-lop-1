@@ -67,6 +67,13 @@ table.dob .inp { margin: 0; }
 table.cards .ic { margin: 0; }
 .arena { width: 100%; border: 4px solid #000; border-radius: 14px; margin-bottom: 8px; border-collapse: separate; table-layout: fixed; }
 .arena td { text-align: center; vertical-align: bottom; padding: 6px 2px; }
+.arena td.side.l { text-align: left; padding-left: 8px; }
+.arena td.side.r { text-align: right; padding-right: 8px; }
+.hero { position: relative; display: inline-block; }
+.hero img { display: block; }
+.hero .fx { position: absolute; right: -42%; top: 0; }
+.hero.hurt img { opacity: 0.55; }
+.hero.hurt .fx { right: -10%; top: -6%; }
 .arena td.vs { width: 14%; font-size: 30px; font-weight: bold; vertical-align: middle; }
 .arena .mname { font-size: 22px; }
 .mname { font-size: 28px; font-weight: bold; }
@@ -987,31 +994,16 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     return s + "</svg>";
   }
 
-  // Chiến binh của bé: "idle" đứng chờ, "atk" chém, "hurt" bị đánh
+  // Chiến binh của bé (hình hiệp sĩ do phụ huynh cung cấp): "idle" đứng, "atk" chém, "hurt" bị đánh
+  var KNIGHT = "__KNIGHT_PNG__";
   function heroSVG(size, state) {
-    var s = '<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 100 100">';
-    var lean = state === "hurt" ? ' transform="rotate(-8 50 90)"' : "";
-    s += "<g" + lean + ">";
-    s += pa("M30 40 Q14 52 22 80 L40 70 Z", FG); // áo choàng
-    s += li(42, 76, 38, 96) + li(56, 76, 60, 96) + li(32, 96, 40, 96) + li(58, 96, 66, 96); // chân
-    s += pa("M36 46 L62 46 L66 78 L32 78 Z", FW) + li(36, 62, 64, 62); // thân áo giáp
-    s += c(49, 30, 14, FW); // đầu
-    s += pa("M35 24 Q35 10 49 10 Q63 10 63 24 Z", FG) + po("46,10 49,1 52,10", FD); // mũ sắt
-    if (state === "hurt") s += li(42, 30, 46, 34) + li(46, 30, 42, 34) + li(52, 30, 56, 34) + li(56, 30, 52, 34) + pa("M44 40 Q49 36 54 40", FN);
-    else s += c(44, 31, 2.2, FK) + c(54, 31, 2.2, FK) + pa("M45 37 Q49 40 53 37", FN);
-    s += e(30, 62, 11, 15, FG) + po("30,52 36,62 30,72 24,62", FW); // khiên
-    if (state === "atk") {
-      s += li(62, 52, 74, 50); // tay
-      s += po("74,47 98,45 98,51 74,53", FW) + re(70, 42, 5, 16, FD, 1); // kiếm đâm ngang
-      s += pa("M78 30 Q96 40 82 62 M70 26 Q100 40 76 70", FN); // vệt chém
-    } else if (state === "hurt") {
-      s += li(62, 52, 70, 64) + po("68,62 72,60 84,88 80,90", FW);
-      s += "</g>" + po("70,4 74,14 84,10 80,20 90,24 80,28 84,38 74,34 70,44 66,34 56,36 60,26 52,20 62,18 60,8", FW) +
-        '<text x="71" y="27" font-size="11" font-weight="bold" text-anchor="middle" font-family="VNSans, sans-serif">ÁI</text><g>';
-    } else {
-      s += li(62, 52, 70, 44) + po("68,46 72,44 80,8 76,8", FW) + re(64, 42, 14, 5, FD, 1); // kiếm giơ lên
-    }
-    return s + "</g></svg>";
+    var w = Math.round(size * 824 / 980), ov = "";
+    if (state === "atk") ov = '<svg class="fx" xmlns="http://www.w3.org/2000/svg" width="' + Math.round(size * 0.5) + '" height="' + size + '" viewBox="0 0 50 100">' +
+      '<path d="M8 20 Q46 45 10 85 M2 32 Q34 50 4 74" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/></svg>';
+    if (state === "hurt") ov = '<svg class="fx" xmlns="http://www.w3.org/2000/svg" width="' + Math.round(size * 0.45) + '" height="' + Math.round(size * 0.45) + '" viewBox="0 0 50 50">' +
+      '<polygon points="25,2 30,14 44,8 37,20 49,26 36,30 41,44 28,37 22,49 18,36 4,40 12,28 2,18 15,16 12,4" fill="#fff" stroke="#000" stroke-width="3" stroke-linejoin="round"/>' +
+      '<text x="25" y="30" font-size="12" font-weight="bold" text-anchor="middle" font-family="VNSans, sans-serif">ÁI</text></svg>';
+    return '<span class="hero' + (state === "hurt" ? " hurt" : "") + '"><img src="' + KNIGHT + '" width="' + w + '" height="' + size + '" alt="">' + ov + "</span>";
   }
   function monBeaten(i) { return P.mon && P.mon[i] ? true : false; }
   function monUnlocked(i) { return i === 0 || monBeaten(i - 1); }
@@ -1020,7 +1012,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
 
   function monsters() {
     S.mode = "";
-    var h = topBar("Đánh quái vật") + "<h1>Đánh quái vật</h1>" + '<div class="pic">' + heroSVG(120, "atk") + "</div>" +
+    var h = topBar("Đánh quái vật") + "<h1>Đánh quái vật</h1>" + '<div class="pic">' + heroSVG(150, "idle") + "</div>" +
       '<p class="sub">Trả lời đúng để tấn công. Trả lời sai thì quái vật đánh lại, mất 1 trái tim. Thắng quái vật này để mở quái vật tiếp theo.</p><table class="g mons"><tr>', i;
     for (i = 0; i < MON.length; i++) {
       if (i > 0 && i % 2 === 0) h += "</tr><tr>";
@@ -1042,8 +1034,8 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
   function showBattle() {
     var m = MON[S.mon], q = S.q, done = S.chosen >= 0, h, i, cls, cols = q.opts.length === 3 ? 3 : 2;
     h = '<div class="top"><span class="l"><b>' + nm() + '</b> · Đánh quái vật</span><span class="r"><button class="btn small" data-act="monsters">Bỏ chạy</button></span></div>';
-    h += '<table class="arena"><tr><td class="side">' + heroSVG(150, S.state === "hit" ? "atk" : (S.state === "hurt" ? "hurt" : "idle")) +
-      '<div class="mname">' + nm() + '</div><div class="hearts">' + hearts(S.php) + '</div></td><td class="vs">VS</td><td class="side">' +
+    h += '<table class="arena"><tr><td class="side l">' + heroSVG(170, S.state === "hit" ? "atk" : (S.state === "hurt" ? "hurt" : "idle")) +
+      '<div class="mname">' + nm() + '</div><div class="hearts">' + hearts(S.php) + '</div></td><td class="vs">VS</td><td class="side r">' +
       monSVG(S.mon, 150, S.state === "hit" ? "hit" : "") + '<div class="mname">' + m.n + '</div><div class="hp">' + hpBar(S.mhp, m.hp) + "</div></td></tr></table>";
     h += '<div class="q">' + q.text + '</div><table class="g opts"><tr>';
     for (i = 0; i < q.opts.length; i++) {
@@ -1077,7 +1069,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
       first = !monBeaten(i); bonus = MON[i].hp;
       if (!P.mon) P.mon = [];
       P.mon[i] = 1; P.seeds += bonus; save();
-      app.innerHTML = "<h1>Chiến thắng!</h1>" + '<div class="pic">' + heroSVG(150, "idle") + " " + monSVG(i, 150, "ko") + "</div>" +
+      app.innerHTML = "<h1>Chiến thắng!</h1>" + '<div class="pic">' + heroSVG(170, "idle") + " &nbsp; " + monSVG(i, 150, "ko") + "</div>" +
         "<h2>" + nm() + " đã đánh bại " + MON[i].n + "!</h2>" +
         '<p class="sub">Trả lời đúng ' + S.got + " câu. Thưởng thêm <b>" + bonus + " hạt thóc</b>. Đang có " + P.seeds + " hạt.</p>" +
         (first && i + 1 < MON.length ? '<p class="sub"><b>Đã mở quái vật mới: ' + MON[i + 1].n + "!</b></p>" : "") +
@@ -1088,7 +1080,7 @@ img.big1 { max-width: 100%; height: auto; border: 3px solid #000; }
     }
     if (S.php <= 0) {
       save();
-      app.innerHTML = "<h1>Hết trái tim rồi!</h1>" + '<div class="pic">' + heroSVG(150, "hurt") + " " + monSVG(i, 150, "") + "</div>" +
+      app.innerHTML = "<h1>Hết trái tim rồi!</h1>" + '<div class="pic">' + heroSVG(170, "hurt") + " &nbsp; " + monSVG(i, 150, "") + "</div>" +
         "<h2>" + MON[i].n + " còn " + S.mhp + " máu. Mình luyện thêm rồi đánh lại nhé, " + nm() + "!</h2>" +
         '<p class="sub">Trả lời đúng ' + S.got + " câu, được " + S.got + " hạt thóc.</p>" +
         '<button class="btn dark" data-act="fight" data-v="' + i + '">Đánh lại</button><button class="btn" data-act="monsters">Danh sách quái vật</button>';

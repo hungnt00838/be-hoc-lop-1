@@ -1,5 +1,6 @@
 import base64,subprocess,sys
-src=open('src/game.html',encoding='utf8').read()
+SRC=sys.argv[2] if len(sys.argv)>2 else 'src/game.html'
+src=open(SRC,encoding='utf8').read()
 chars=set(chr(c) for c in range(0x20,0x7f))
 vn="aàáảãạăằắẳẵặâầấẩẫậeèéẻẽẹêềếểễệiìíỉĩịoòóỏõọôồốổỗộơờớởỡợuùúủũụưừứửữựyỳýỷỹỵđ"
 for c in vn: chars.add(c); chars.add(c.upper())
@@ -15,4 +16,7 @@ cm=TTFont('/tmp/dv.ttf').getBestCmap()
 print('missing glyphs',[c for c in chars if ord(c) not in cm and c not in '\xa0'])
 ff=('@font-face { font-family: "VNSans"; font-weight: normal; font-style: normal; src: url(data:font/truetype;base64,%s) format("truetype"); }\n'
     '@font-face { font-family: "VNSans"; font-weight: bold; font-style: normal; src: url(data:font/truetype;base64,%s) format("truetype"); }')%(out[''],out['-Bold'])
-open(sys.argv[1],'w',encoding='utf8').write(src.replace('/*FONTS*/',ff,1))
+import os
+kp=os.path.join(os.path.dirname(os.path.abspath(SRC)),'knight.png')
+kn='data:image/png;base64,'+base64.b64encode(open(kp,'rb').read()).decode()
+open(sys.argv[1],'w',encoding='utf8').write(src.replace('/*FONTS*/',ff,1).replace('__KNIGHT_PNG__',kn))
